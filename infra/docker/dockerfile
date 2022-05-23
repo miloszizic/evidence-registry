@@ -1,0 +1,28 @@
+# Build the Go Binary
+
+FROM golang:1.18 as evidence
+ENV CGO_ENABLED=0
+ARG BUILD_REF
+
+# Copy the source code into container
+COPY . /evidence
+
+# Build the service binary
+WORKDIR /evidence/cmd
+
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+# Run the Go binary in Alpine.
+
+FROM scratch
+ARG BUILD_DATE
+ARG BUILD_REF
+COPY --from=evidence /evidence/cmd /evidence/
+WORKDIR /evidence/
+CMD ["./cmd"]
+
+
+LABEL org.opencontainers.image.create="${BUILD_DATE}" \
+	  org.opencontainers.image.revision="${BUILD_REF}" \
+	  org.opencontainers.image.title="service-evidence" \
+	  org.opencontainers.image.Author="Milos Zizic" \
