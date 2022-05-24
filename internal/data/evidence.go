@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"database/sql"
@@ -19,13 +19,13 @@ type Comment struct {
 	Text       string `json:"text,omitempty"`
 }
 
-type EvidenceModel struct {
+type EvidenceDB struct {
 	DB *sql.DB
 }
 
 // Create is used to create a new evidence in specific case in the database
 // It returns the new evidence ID
-func (s *EvidenceModel) Create(evidence *Evidence) (int64, error) {
+func (s *EvidenceDB) Create(evidence *Evidence) (int64, error) {
 	// check if the evidence already exists
 
 	err := s.DB.QueryRow(`INSERT INTO evidences (case_id, name, hash) VALUES ($1, $2, $3) RETURNING id;`, evidence.CaseID, evidence.Name, evidence.Hash).Scan(&evidence.ID)
@@ -36,27 +36,27 @@ func (s *EvidenceModel) Create(evidence *Evidence) (int64, error) {
 }
 
 // GetByID is used to get an evidence by its ID from specific case in the database
-func (s *EvidenceModel) GetByID(id int64) (*Evidence, error) {
+func (s *EvidenceDB) GetByID(id int64) (*Evidence, error) {
 	var evidence Evidence
 	err := s.DB.QueryRow("SELECT id, case_id, name, hash FROM evidences WHERE id = $1", id).Scan(&evidence.ID, &evidence.CaseID, &evidence.Name, &evidence.Hash)
 	return &evidence, err
 }
 
 // GetByName is used to get an evidence by its name from specific case in the database
-func (s *EvidenceModel) GetByName(cs *Case, name string) (*Evidence, error) {
+func (s *EvidenceDB) GetByName(cs *Case, name string) (*Evidence, error) {
 	var object Evidence
 	err := s.DB.QueryRow("SELECT id, case_id, name, hash FROM evidences WHERE case_id = $1 AND name = $2", cs.ID, name).Scan(&object.ID, &object.CaseID, &object.Name, &object.Hash)
 	return &object, err
 }
 
 // Remove is used to delete an evidence from specific case in the database
-func (s *EvidenceModel) Remove(evidence *Evidence) error {
+func (s *EvidenceDB) Remove(evidence *Evidence) error {
 	_, err := s.DB.Exec(`DELETE FROM "evidences" WHERE id = $1 AND case_id = $2;`, evidence.ID, evidence.CaseID)
 	return err
 }
 
 // GetByCaseID is used to get all evidences from specific case in the database
-func (s *EvidenceModel) GetByCaseID(CaseID int64) ([]Evidence, error) {
+func (s *EvidenceDB) GetByCaseID(CaseID int64) ([]Evidence, error) {
 	rows, err := s.DB.Query(`SELECT id, case_id, name, hash FROM evidences WHERE case_id = $1;`, CaseID)
 	if err != nil {
 		return nil, err
@@ -76,13 +76,13 @@ func (s *EvidenceModel) GetByCaseID(CaseID int64) ([]Evidence, error) {
 }
 
 //AddComment is used to add a comment to an evidence in the database
-func (s *EvidenceModel) AddComment(comment *Comment) error {
+func (s *EvidenceDB) AddComment(comment *Comment) error {
 	_, err := s.DB.Exec(`INSERT INTO "comments" ("evidence_id", "content") VALUES ($1, $2 );`, comment.EvidenceID, comment.Text)
 	return err
 }
 
 //GetCommentsByID is used to get all comments from an evidence in the database
-func (s *EvidenceModel) GetCommentsByID(evidenceID int64) ([]Comment, error) {
+func (s *EvidenceDB) GetCommentsByID(evidenceID int64) ([]Comment, error) {
 	rows, err := s.DB.Query(`SELECT id, evidence_id, content FROM comments WHERE evidence_id = $1;`, evidenceID)
 	if err != nil {
 		return nil, err

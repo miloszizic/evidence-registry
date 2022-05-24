@@ -1,8 +1,8 @@
 ////go:build integration
-package data_test
+package database_test
 
 import (
-	"evidence/internal/data"
+	"evidence/internal/data/database"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -11,21 +11,21 @@ import (
 func TestCreatingUser(t *testing.T) {
 	testCases := []struct {
 		name     string
-		user     *data.User
+		user     *database.User
 		password string
 		wantErr  bool
 	}{
 		{
-			name: "successfully with correct data",
-			user: &data.User{
+			name: "successfully with correct database",
+			user: &database.User{
 				Username: "simba",
 			},
 			password: "123456",
 			wantErr:  false,
 		},
 		{
-			name: "failed with incorrect data",
-			user: &data.User{
+			name: "failed with incorrect database",
+			user: &database.User{
 				Username: "",
 			},
 			password: "123456",
@@ -34,7 +34,7 @@ func TestCreatingUser(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			store, err := getTestStores(t)
+			store, err := GetTestStores(t)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -54,13 +54,13 @@ func TestCreatingUser(t *testing.T) {
 func TestUserCredentials(t *testing.T) {
 	testCases := []struct {
 		name        string
-		user        *data.User
+		user        *database.User
 		setPassword string
 		password    string
 		match       bool
 	}{{
 		name: "with correct password matches",
-		user: &data.User{
+		user: &database.User{
 			Username: "Simba",
 		},
 		setPassword: "opsAdmin",
@@ -69,7 +69,7 @@ func TestUserCredentials(t *testing.T) {
 	},
 		{
 			name: "with correct password matches",
-			user: &data.User{
+			user: &database.User{
 				Username: "phoebe",
 			},
 			setPassword: "opsAdmin",
@@ -78,7 +78,7 @@ func TestUserCredentials(t *testing.T) {
 		},
 		{
 			name: "with incorrect password does not match",
-			user: &data.User{
+			user: &database.User{
 				Username: "Mufasa",
 			},
 			setPassword: "opsAdmin",
@@ -88,7 +88,7 @@ func TestUserCredentials(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			store, err := getTestStores(t)
+			store, err := GetTestStores(t)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -115,7 +115,7 @@ func TestUserCredentials(t *testing.T) {
 	}
 }
 func TestAddingUserWithEmptyPasswordFails(t *testing.T) {
-	user := &data.User{
+	user := &database.User{
 		Username: "simba",
 	}
 	err := user.Password.Set("")
@@ -127,14 +127,14 @@ func TestDeletionOfUser(t *testing.T) {
 	testCases := []struct {
 		name     string
 		password string
-		addUser  *data.User
+		addUser  *database.User
 		id       int64
 		wantErr  bool
 	}{
 		{
 			name:     "that exists successful",
 			password: "123456",
-			addUser: &data.User{
+			addUser: &database.User{
 				Username: "Simba",
 			},
 			id:      1,
@@ -143,7 +143,7 @@ func TestDeletionOfUser(t *testing.T) {
 		{
 			name:     "that also exists successful",
 			password: "123456",
-			addUser: &data.User{
+			addUser: &database.User{
 				Username: "Pheobe",
 			},
 			id:      1,
@@ -152,7 +152,7 @@ func TestDeletionOfUser(t *testing.T) {
 		{
 			name:     "that does not exist unsuccessful",
 			password: "123456",
-			addUser: &data.User{
+			addUser: &database.User{
 				Username: "Mufasa",
 			},
 			id:      10,
@@ -161,7 +161,7 @@ func TestDeletionOfUser(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			store, err := getTestStores(t)
+			store, err := GetTestStores(t)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -183,7 +183,7 @@ func TestDeletionOfUser(t *testing.T) {
 }
 
 func TestSearchingForNonExistingUserByIDFailed(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Fatal(err)
 	}

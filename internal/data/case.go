@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"database/sql"
@@ -12,12 +12,12 @@ type Case struct {
 	Tags []string `json:"tags"`
 }
 
-type CaseModel struct {
+type CaseDB struct {
 	DB *sql.DB
 }
 
 //Add a new case to the database
-func (s *CaseModel) Add(cs *Case, user *User) error {
+func (s *CaseDB) Add(cs *Case, user *User) error {
 	if cs.Name == "" {
 		return errors.New("case name can't be empty")
 	}
@@ -47,7 +47,7 @@ func (s *CaseModel) Add(cs *Case, user *User) error {
 }
 
 //List all cases in the database or an error
-func (s *CaseModel) List() ([]Case, error) {
+func (s *CaseDB) List() ([]Case, error) {
 	rows, err := s.DB.Query(`SELECT * FROM "cases"`)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (s *CaseModel) List() ([]Case, error) {
 }
 
 // GetByName returns a case by name from the database or an error
-func (s *CaseModel) GetByName(name string) (*Case, error) {
+func (s *CaseDB) GetByName(name string) (*Case, error) {
 	cs := &Case{}
 	err := s.DB.QueryRow(`SELECT * FROM "cases" WHERE name = $1`, name).Scan(&cs.ID, &cs.Name, pq.Array(&cs.Tags))
 	if err != nil {
@@ -78,18 +78,17 @@ func (s *CaseModel) GetByName(name string) (*Case, error) {
 }
 
 // GetByID returns a case by id from the database or an error
-func (s *CaseModel) GetByID(id int64) (*Case, error) {
+func (s *CaseDB) GetByID(id int64) (*Case, error) {
 	cs := &Case{}
 	err := s.DB.QueryRow(`SELECT * FROM "cases" WHERE id = $1`, id).Scan(&cs.ID, &cs.Name, pq.Array(&cs.Tags))
 	if err != nil {
 		return nil, err
 	}
-
 	return cs, nil
 }
 
 //GetByUserID returns a case by id from the database or an error
-func (s *CaseModel) GetByUserID(userID int64) ([]Case, error) {
+func (s *CaseDB) GetByUserID(userID int64) ([]Case, error) {
 	rows, err := s.DB.Query(`SELECT * FROM "cases" WHERE id IN (SELECT case_id FROM "user_cases" WHERE user_id = $1)`, userID)
 	if err != nil {
 		return nil, err
@@ -109,7 +108,15 @@ func (s *CaseModel) GetByUserID(userID int64) ([]Case, error) {
 }
 
 // Remove removes a case from the database
-func (s *CaseModel) Remove(cs *Case) error {
+func (s *CaseDB) Remove(cs *Case) error {
+	// check if the case exists
+	result, err := s.GetByID(cs.ID)
+	if result == nil {
+		return errors.New("case not found")
+	}
+	if err != nil {
+		return err
+	}
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
@@ -122,11 +129,7 @@ func (s *CaseModel) Remove(cs *Case) error {
 		return err
 	}
 	// then remove from cases table
-	resultC, err := tx.Exec(`DELETE FROM "cases" WHERE id = $1`, cs.ID)
-	rawsC, err := resultC.RowsAffected()
-	if rawsC == 0 {
-		return errors.New("case not found cs")
-	}
+	_, err = tx.Exec(`DELETE FROM "cases" WHERE id = $1`, cs.ID)
 	if err != nil {
 		return err
 	}
@@ -134,7 +137,7 @@ func (s *CaseModel) Remove(cs *Case) error {
 	return tx.Commit()
 }
 
-func (s *CaseModel) SearchByTags(tags []string) ([]Case, error) {
+func (s *CaseDB) SearchByTags(tags []string) ([]Case, error) {
 	sel := `SELECT * FROM "cases" WHERE $1 <@ tags`
 	rows, err := s.DB.Query(sel, pq.Array(tags))
 	if err != nil {

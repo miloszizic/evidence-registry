@@ -1,33 +1,30 @@
-package data
+package database
 
 import (
 	"database/sql"
-	"errors"
+	storage2 "evidence/internal/data/storage"
 	"log"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var (
-	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict   = errors.New("edit conflict")
-)
-
 type Stores struct {
-	UserDB     UserModel
-	CaseDB     CaseModel
-	EvidenceDB EvidenceModel
-	StoreFS    StoreFS
+	UserDB     UserDB
+	CaseDB     CaseDB
+	EvidenceDB EvidenceDB
+	CaseFS     storage2.CaseFS
+	EvidenceFS storage2.EvidenceFS
 }
 
 // NewStores creates a new Stores object
 func NewStores(db *sql.DB, client *minio.Client) Stores {
 	return Stores{
-		UserDB:     UserModel{DB: db},
-		CaseDB:     CaseModel{DB: db},
-		EvidenceDB: EvidenceModel{DB: db},
-		StoreFS:    StoreFS{Minio: client},
+		UserDB:     UserDB{DB: db},
+		CaseDB:     CaseDB{DB: db},
+		EvidenceDB: EvidenceDB{DB: db},
+		CaseFS:     storage2.CaseFS{Minio: client},
+		EvidenceFS: storage2.EvidenceFS{Minio: client},
 	}
 }
 

@@ -1,10 +1,10 @@
 ////go:build integration
 
-package data_test
+package database_test
 
 import (
 	"database/sql"
-	"evidence/internal/data"
+	database2 "evidence/internal/data/database"
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -12,47 +12,19 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func addCasesForTests(store data.Stores) error {
-	testCases := []data.Case{
-		{Name: "TestCase", Tags: []string{"tag1", "tag2"}},
-		{Name: "TestCase2", Tags: []string{"tag1"}},
-		{Name: "TestCase3"},
-	}
-	testUser := &data.User{
-		ID:       1,
-		Username: "TestUser3",
-	}
-	err := testUser.Password.Set("TestPassword")
-	if err != nil {
-		return err
-	}
-	err = store.UserDB.Add(testUser)
-	if err != nil {
-		return err
-	}
-
-	for _, testCase := range testCases {
-		err = store.CaseDB.Add(&testCase, testUser)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := &data.Case{
+	want := &database2.Case{
 		ID:   1,
 		Name: "TestCase",
 	}
-	reqCase := &data.Case{
+	reqCase := &database2.Case{
 		Name: "TestCase",
 	}
-	reqUser := &data.User{
+	reqUser := &database2.User{
 		ID:       1,
 		Username: "TestUser",
 	}
@@ -72,25 +44,25 @@ func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting cases: %v", err)
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreFields(data.Case{}, "ID")) {
+	if !cmp.Equal(got, want, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
 func TestCaseCreation(t *testing.T) {
 	testCases := []struct {
 		name     string
-		caseData *data.Case
-		userData *data.User
+		caseData *database2.Case
+		userData *database2.User
 		password string
 		wantErr  bool
 	}{
 		{
-			name: "with valid data",
-			caseData: &data.Case{
+			name: "with valid database",
+			caseData: &database2.Case{
 				Name: "TestCase",
 				Tags: []string{"tag1", "tag2"},
 			},
-			userData: &data.User{
+			userData: &database2.User{
 				ID:       1,
 				Username: "TestUser",
 			},
@@ -98,12 +70,12 @@ func TestCaseCreation(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "with invalid data",
-			caseData: &data.Case{
+			name: "with invalid database",
+			caseData: &database2.Case{
 				Name: "",
 				Tags: []string{"tag1", "tag2"},
 			},
-			userData: &data.User{
+			userData: &database2.User{
 				ID:       1,
 				Username: "TestUser",
 			},
@@ -111,7 +83,7 @@ func TestCaseCreation(t *testing.T) {
 			wantErr:  true,
 		},
 	}
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
@@ -134,19 +106,19 @@ func TestCaseCreation(t *testing.T) {
 }
 
 func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := &data.Case{
+	want := &database2.Case{
 		ID:   1,
 		Name: "TestCase",
 	}
 
-	reqCase := &data.Case{
+	reqCase := &database2.Case{
 		Name: "TestCase",
 	}
-	reqUser := &data.User{
+	reqUser := &database2.User{
 		ID:       1,
 		Username: "TestUser2",
 	}
@@ -166,19 +138,14 @@ func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting cases: %v", err)
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreFields(data.Case{}, "ID")) {
+	if !cmp.Equal(got, want, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
 func TestSearchingForCaseByInvalidIDReturnsError(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
-	}
-	//TODO: I think this is not clear enough for others that read tests...Ask sensei
-	err = addCasesForTests(store)
-	if err != nil {
-		t.Errorf("failed to add test cases: %v", err)
 	}
 	_, err = store.CaseDB.GetByID(10)
 	if err != sql.ErrNoRows {
@@ -186,15 +153,15 @@ func TestSearchingForCaseByInvalidIDReturnsError(t *testing.T) {
 	}
 }
 func TestCaseFoundByNameWasSuccessfullyDeletedInDB(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	testCase := &data.Case{
+	testCase := &database2.Case{
 		ID:   1,
 		Name: "TestCase2",
 	}
-	testUser := &data.User{
+	testUser := &database2.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -220,14 +187,9 @@ func TestCaseFoundByNameWasSuccessfullyDeletedInDB(t *testing.T) {
 	}
 }
 func TestSearchingForNonExistentCaseNameReturnsError(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
-	}
-	//TODO: I think this is not clear enough for others that read tests...Ask sensei
-	err = addCasesForTests(store)
-	if err != nil {
-		t.Errorf("failed to add test cases: %v", err)
 	}
 	_, err = store.CaseDB.GetByName("NonExistent")
 	if err != sql.ErrNoRows {
@@ -235,17 +197,17 @@ func TestSearchingForNonExistentCaseNameReturnsError(t *testing.T) {
 	}
 }
 func TestReturnedAllCasesForSpecificUser(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []data.Case{
+	want := []database2.Case{
 		{Name: "TestCase"},
 		{Name: "TestCase2"},
 		{Name: "TestCase3"},
 	}
 
-	testUser := &data.User{
+	testUser := &database2.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -268,22 +230,22 @@ func TestReturnedAllCasesForSpecificUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error retriving cases for specific user ID : %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
 func TestRetrieveAllCasesInDB(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []data.Case{
+	want := []database2.Case{
 		{Name: "TestCase"},
 		{Name: "TestCase2"},
 		{Name: "TestCase3"},
 	}
 
-	testUser := &data.User{
+	testUser := &database2.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -306,25 +268,42 @@ func TestRetrieveAllCasesInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get all cases: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
 func TestRetireCasesByTags(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []data.Case{
+	want := []database2.Case{
 		{Name: "TestCase", Tags: []string{"tag1", "tag2"}},
 	}
-	addCasesForTests(store)
+	// Create a user
+	testUser := &database2.User{
+		ID:       1,
+		Username: "TestUser3",
+	}
+	err = testUser.Password.Set("TestPassword")
+	if err != nil {
+		t.Error(err)
+	}
+	err = store.UserDB.Add(testUser)
+	if err != nil {
+		t.Errorf("Error creating user: %v", err)
+	}
+	// Create a case
+	err = store.CaseDB.Add(&want[0], testUser)
+	if err != nil {
+		t.Errorf("Error creating case: %v", err)
+	}
 	searchableTags := []string{"tag1", "tag2"}
 	got, err := store.CaseDB.SearchByTags(searchableTags)
 	if err != nil {
 		t.Errorf("failed to get cases by tags: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 

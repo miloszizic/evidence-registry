@@ -1,33 +1,33 @@
-package data_test
+package database_test
 
 import (
 	"context"
 	"database/sql"
-	"evidence/internal/data"
+	database2 "evidence/internal/data/database"
 	"github.com/minio/minio-go/v7"
 	"testing"
 )
 
 //getUserService returns a user service with a test database connection.
-func getTestStores(t *testing.T) (data.Stores, error) {
-	config, err := data.LoadProductionConfig(false)
+func GetTestStores(t *testing.T) (database2.Stores, error) {
+	config, err := database2.LoadProductionConfig(false)
 	if err != nil {
 		t.Errorf("Error loading config: %v", err)
 	}
-	db, err := data.FromPostgresDB(config.Database.ConnectionInfo())
+	db, err := database2.FromPostgresDB(config.Database.ConnectionInfo())
 	if err != nil {
 		t.Errorf("Error connecting to database: %v", err)
 	}
 	resetTestPostgresDB(db, t)
 	minioCfg := config.Minio
-	minioClient, err := data.FromMinio(
+	minioClient, err := database2.FromMinio(
 		minioCfg.Endpoint,
 		minioCfg.AccessKey,
 		minioCfg.SecretKey,
 	)
 	restartTestMinio(minioClient, t)
 
-	newStores := data.NewStores(db, minioClient)
+	newStores := database2.NewStores(db, minioClient)
 
 	return newStores, nil
 }
@@ -73,12 +73,12 @@ func restartTestMinio(minioClient *minio.Client, t *testing.T) {
 }
 
 func TestMinioConnectionToTestEnv(t *testing.T) {
-	config, err := data.LoadProductionConfig(false)
+	config, err := database2.LoadProductionConfig(false)
 	if err != nil {
 		t.Errorf("Failed to load config: %s", err)
 	}
 	minioCFG := config.Minio
-	minio, err := data.FromMinio(minioCFG.Endpoint, minioCFG.AccessKey, minioCFG.SecretKey)
+	minio, err := database2.FromMinio(minioCFG.Endpoint, minioCFG.AccessKey, minioCFG.SecretKey)
 	alive := minio.IsOnline()
 	if !alive {
 		t.Errorf("expexted ostorage to be online, but it was not")

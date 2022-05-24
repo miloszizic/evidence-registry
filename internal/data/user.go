@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"database/sql"
@@ -51,12 +51,12 @@ func (p *password) Matches(plaintextPassword string) (bool, error) {
 	return true, nil
 }
 
-type UserModel struct {
+type UserDB struct {
 	DB *sql.DB
 }
 
 // Add adds a user to the database if the username and password are not empty.
-func (u *UserModel) Add(user *User) error {
+func (u *UserDB) Add(user *User) error {
 	if user.Username == "" || user.Password.plaintext == nil {
 		return errors.New("username and password can't be empty")
 	}
@@ -68,21 +68,21 @@ func (u *UserModel) Add(user *User) error {
 }
 
 // GetByID returns a user from the database by ID
-func (u *UserModel) GetByID(id int64) (*User, error) {
+func (u *UserDB) GetByID(id int64) (*User, error) {
 	var user User
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE id = $1", id).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
 	return &user, err
 }
 
 // GetByUsername returns a user from the database by username
-func (u *UserModel) GetByUsername(username string) (*User, error) {
+func (u *UserDB) GetByUsername(username string) (*User, error) {
 	var user User
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
 	return &user, err
 }
 
 // Remove find the user by ID and removes it from the database
-func (u *UserModel) Remove(id int64) error {
+func (u *UserDB) Remove(id int64) error {
 	result, err := u.DB.Exec("DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		return err
