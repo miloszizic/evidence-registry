@@ -1,8 +1,7 @@
-package database
+package data
 
 import (
 	"database/sql"
-	storage2 "evidence/internal/data/storage"
 	"log"
 
 	"github.com/minio/minio-go/v7"
@@ -13,8 +12,8 @@ type Stores struct {
 	UserDB     UserDB
 	CaseDB     CaseDB
 	EvidenceDB EvidenceDB
-	CaseFS     storage2.CaseFS
-	EvidenceFS storage2.EvidenceFS
+	CaseFS     CaseFS
+	EvidenceFS EvidenceFS
 }
 
 // NewStores creates a new Stores object
@@ -23,8 +22,8 @@ func NewStores(db *sql.DB, client *minio.Client) Stores {
 		UserDB:     UserDB{DB: db},
 		CaseDB:     CaseDB{DB: db},
 		EvidenceDB: EvidenceDB{DB: db},
-		CaseFS:     storage2.CaseFS{Minio: client},
-		EvidenceFS: storage2.EvidenceFS{Minio: client},
+		CaseFS:     CaseFS{Minio: client},
+		EvidenceFS: EvidenceFS{Minio: client},
 	}
 }
 

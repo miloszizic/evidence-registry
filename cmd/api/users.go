@@ -56,14 +56,14 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 		AccessTokenExpiresAt: accessPayload.ExpiresAt,
 		User:                 *user,
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"data": rsp}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"database": rsp}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
 // create user handler
-func (app *Application) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var req createUserRequest
 
 	err := app.readJSON(w, r, &req)

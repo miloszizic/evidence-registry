@@ -1,9 +1,9 @@
 ////go:build integration
-package database_test
+package data_test
 
 import (
 	"database/sql"
-	database2 "evidence/internal/data/database"
+	"evidence/internal/data"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -16,7 +16,7 @@ func TestRetrieveAllEvidencesFromCase(t *testing.T) {
 		t.Errorf("failed to get store: %v", err)
 	}
 	// create a user
-	user := &database2.User{
+	user := &data.User{
 		ID:       1,
 		Username: "test",
 	}
@@ -26,14 +26,14 @@ func TestRetrieveAllEvidencesFromCase(t *testing.T) {
 		t.Errorf("failed to add user: %v", err)
 	}
 	// create a case
-	caseToAdd := &database2.Case{
+	caseToAdd := &data.Case{
 		Name: "test",
 	}
 	err = store.CaseDB.Add(caseToAdd, user)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	want := []database2.Evidence{
+	want := []data.Evidence{
 		{ID: 1, CaseID: 1, Name: "video"},
 		{ID: 2, CaseID: 1, Name: "picture"},
 	}
@@ -47,7 +47,7 @@ func TestRetrieveAllEvidencesFromCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get evidences by case ID: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Evidence{}, "ID", "Hash")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Evidence{}, "ID", "Hash")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 
@@ -57,12 +57,12 @@ func TestCreateOneEvidenceInCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
 	}
-	want := []database2.Evidence{
+	want := []data.Evidence{
 		{ID: 1, CaseID: 1, Name: "video"},
 	}
 
 	// create a user
-	user := &database2.User{
+	user := &data.User{
 		ID:       1,
 		Username: "test",
 	}
@@ -72,14 +72,14 @@ func TestCreateOneEvidenceInCase(t *testing.T) {
 		t.Errorf("failed to add user: %v", err)
 	}
 	// create a case
-	caseToAdd := &database2.Case{
+	caseToAdd := &data.Case{
 		Name: "test",
 	}
 	err = store.CaseDB.Add(caseToAdd, user)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	testEvidence := &database2.Evidence{
+	testEvidence := &data.Evidence{
 		CaseID: 1,
 		Name:   "video",
 	}
@@ -91,7 +91,7 @@ func TestCreateOneEvidenceInCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get evidence from case with error: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Evidence{}, "ID", "Hash")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Evidence{}, "ID", "Hash")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
@@ -100,12 +100,12 @@ func TestDeleteEvidenceByNameFromTheCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
 	}
-	evidencesToAdd := []database2.Evidence{
+	evidencesToAdd := []data.Evidence{
 		{ID: 1, CaseID: 1, Name: "video"},
 		{ID: 2, CaseID: 1, Name: "picture"},
 	}
 	// create a user
-	user := &database2.User{
+	user := &data.User{
 		ID:       1,
 		Username: "test",
 	}
@@ -115,7 +115,7 @@ func TestDeleteEvidenceByNameFromTheCase(t *testing.T) {
 		t.Errorf("failed to add user: %v", err)
 	}
 	// create a case
-	caseToAdd := &database2.Case{
+	caseToAdd := &data.Case{
 		Name: "test",
 	}
 	err = store.CaseDB.Add(caseToAdd, user)
@@ -129,7 +129,7 @@ func TestDeleteEvidenceByNameFromTheCase(t *testing.T) {
 			t.Errorf("failed to create evidence: %v", err)
 		}
 	}
-	evidenceToDelete := &database2.Evidence{ID: 1, CaseID: 1}
+	evidenceToDelete := &data.Evidence{ID: 1, CaseID: 1}
 	err = store.EvidenceDB.Remove(evidenceToDelete)
 	if err != nil {
 		t.Errorf("failed to delete evidence: %v", err)
@@ -144,16 +144,16 @@ func TestFindingTheEvidenceByItsName(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
 	}
-	want := &database2.Evidence{
+	want := &data.Evidence{
 		ID: 1, CaseID: 1, Name: "video",
 	}
-	testEvidences := []database2.Evidence{
+	testEvidences := []data.Evidence{
 		{ID: 1, CaseID: 1, Name: "video"},
 		{ID: 2, CaseID: 1, Name: "picture"},
 	}
-	testCase := &database2.Case{ID: 1}
+	testCase := &data.Case{ID: 1}
 	// create a user
-	user := &database2.User{
+	user := &data.User{
 		ID:       1,
 		Username: "test",
 	}
@@ -163,7 +163,7 @@ func TestFindingTheEvidenceByItsName(t *testing.T) {
 		t.Errorf("failed to add user: %v", err)
 	}
 	// create a case
-	caseToAdd := &database2.Case{
+	caseToAdd := &data.Case{
 		ID:   1,
 		Name: "test",
 	}
@@ -188,16 +188,16 @@ func TestAddingCommentToTheEvidences(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
 	}
-	want := []database2.Comment{
+	want := []data.Comment{
 		{ID: 1, EvidenceID: 1, Text: "something interesting"},
 	}
-	testComment := &database2.Comment{EvidenceID: 1, Text: "something interesting"}
-	testEvidences := []database2.Evidence{
+	testComment := &data.Comment{EvidenceID: 1, Text: "something interesting"}
+	testEvidences := []data.Evidence{
 		{ID: 1, CaseID: 1, Name: "video"},
 		{ID: 2, CaseID: 1, Name: "picture"},
 	}
 	// create a user
-	user := &database2.User{
+	user := &data.User{
 		ID:       1,
 		Username: "test",
 	}
@@ -207,7 +207,7 @@ func TestAddingCommentToTheEvidences(t *testing.T) {
 		t.Errorf("failed to add user: %v", err)
 	}
 	// create a case
-	caseToAdd := &database2.Case{
+	caseToAdd := &data.Case{
 		Name: "test",
 	}
 	err = store.CaseDB.Add(caseToAdd, user)

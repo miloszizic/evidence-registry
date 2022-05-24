@@ -53,6 +53,13 @@ func TestCreatingCases(t *testing.T) {
 			},
 			wantStatus: http.StatusCreated,
 		},
+		{
+			name: "with invalid JSON failed",
+			requestBody: map[string]interface{}{
+				"nam": "testcase",
+			},
+			wantStatus: http.StatusBadRequest,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -88,6 +95,51 @@ func TestCreatingCases(t *testing.T) {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
 			}
 		})
+	}
+}
+func TestCaseRemovedFromFSWhenTheAddingToDBFails(t *testing.T) {
+	app := newTestServer(t)
+	requestBody := map[string]interface{}{
+		"name": "test",
+	}
+	requestBodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest("POST", "/cases", bytes.NewBuffer(requestBodyBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := &data.User{
+		ID:       1,
+		Username: "test",
+	}
+	err = user.Password.Set("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = app.stores.UserDB.Add(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs := &data.Case{
+		Name: "test",
+	}
+	err = app.stores.CaseDB.Add(cs, user)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	payload := &Payload{
+		Username: "test",
+	}
+	//Adding payload ctx to request
+	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+	reqWithPayload := request.WithContext(ctx)
+	response := httptest.NewRecorder()
+	app.CreateCaseHandler(response, reqWithPayload)
+	if response.Code != http.StatusConflict {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
 	}
 }
 func TestBadJSONRequestFailsOnPOST(t *testing.T) {
@@ -145,7 +197,7 @@ func TestBadJSONRequestFailsOnPOST(t *testing.T) {
 		})
 	}
 }
-func TestCaseInFSShouldBeRemovedIfCreationInDBFails(t *testing.T) {
+func TestCaseShouldNotBeCreatedIfUserDoesNotExist(t *testing.T) {
 	app := newTestServer(t)
 	requestBody := map[string]interface{}{
 		"name": "testcase",
@@ -166,11 +218,9 @@ func TestCaseInFSShouldBeRemovedIfCreationInDBFails(t *testing.T) {
 	reqWithPayload := request.WithContext(ctx)
 	response := httptest.NewRecorder()
 	app.CreateCaseHandler(response, reqWithPayload)
-	err = app.stores.StoreFS.RemoveCase("testcase")
-	if err.Error() != "case does not exist" {
-		t.Errorf("expected case not found, got %v", err)
+	if response.Code != http.StatusNotFound {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
 	}
-
 }
 func TestCaseDeletion(t *testing.T) {
 	tests := []struct {
@@ -226,7 +276,7 @@ func TestCaseDeletion(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.StoreFS.AddCase(cs)
+			err = app.stores.CaseFS.Create(cs)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -267,7 +317,7 @@ func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
 	cs := &data.Case{
 		Name: "ssss",
 	}
-	err = app.stores.StoreFS.AddCase(cs)
+	err = app.stores.CaseFS.Create(cs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,6 +380,53 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, response.Code)
 	}
 }
+func TestNonAdminUserFailedToDeleteCase(t *testing.T) {
+	app := newTestServer(t)
+	user := &data.User{
+		Username: "test",
+		Role:     "user",
+	}
+	err := user.Password.Set("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = app.stores.UserDB.Add(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	user.ID = 1
+	payload := &Payload{
+		Username: "test",
+	}
+	//adding the cases to the database and storage
+	cs := &data.Case{
+		Name: "ssss",
+	}
+	err = app.stores.CaseDB.Add(cs, user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = app.stores.CaseFS.Create(cs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestBody := map[string]interface{}{
+		"name": "ssss",
+	}
+	body, err := json.Marshal(requestBody)
+	//Making a delete request
+	request := httptest.NewRequest("DELETE", "/cases", bytes.NewBuffer(body))
+	//Adding payload ctx to request
+	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+	reqWithPayload := request.WithContext(ctx)
+	//Recording the response
+	response := httptest.NewRecorder()
+	app.RemoveCaseHandler(response, reqWithPayload)
+	//Checking the status code
+	if response.Code != http.StatusForbidden {
+		t.Errorf("expected status %d, got %d", http.StatusForbidden, response.Code)
+	}
+}
 func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	//Creating a test server
 	app := newTestServer(t)
@@ -358,13 +455,13 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = app.stores.StoreFS.AddCase(&cs)
+		err = app.stores.CaseFS.Create(&cs)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	//Add additional case to storage to test filtering
-	err = app.stores.StoreFS.AddCase(&data.Case{
+	err = app.stores.CaseFS.Create(&data.Case{
 		Name: "pspg-k-25-25",
 	})
 	payload := &Payload{
@@ -418,7 +515,7 @@ func TestListedAllCasesFailedForNonAdminUser(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = app.stores.StoreFS.AddCase(&cs)
+		err = app.stores.CaseFS.Create(&cs)
 		if err != nil {
 			t.Fatal(err)
 		}

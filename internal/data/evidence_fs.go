@@ -1,11 +1,10 @@
-package storage
+package data
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"evidence/internal/data/database"
 	"github.com/minio/minio-go/v7"
 	"io"
 	"strings"
@@ -17,7 +16,7 @@ type EvidenceFS struct {
 
 // Create adds a new evidence to the storeFS and returns a SHA256 hash of that file, Evidence name should be unique within case and
 // must not contain forward slash
-func (e *EvidenceFS) Create(evidence *database.Evidence, caseName string, file io.Reader) (string, error) {
+func (e *EvidenceFS) Create(evidence *Evidence, caseName string, file io.Reader) (string, error) {
 	if strings.Contains(caseName, "/") {
 		return "", errors.New("forward slash is not allowed as case name")
 	}
@@ -38,7 +37,7 @@ func (e *EvidenceFS) Create(evidence *database.Evidence, caseName string, file i
 }
 
 // Remove removes an evidence from specific case and the storeFS
-func (e *EvidenceFS) Remove(evidence *database.Evidence, caseName string) error {
+func (e *EvidenceFS) Remove(evidence *Evidence, caseName string) error {
 	err := e.Minio.RemoveObject(context.Background(), caseName, evidence.Name, minio.RemoveObjectOptions{})
 	if err != nil {
 		return err
@@ -47,14 +46,14 @@ func (e *EvidenceFS) Remove(evidence *database.Evidence, caseName string) error 
 }
 
 // List returns a list of evidence in the FS
-func (e *EvidenceFS) List(caseName string) ([]database.Evidence, error) {
-	var evidence []database.Evidence
+func (e *EvidenceFS) List(caseName string) ([]Evidence, error) {
+	var evidence []Evidence
 	objects := e.Minio.ListObjects(context.Background(), caseName, minio.ListObjectsOptions{})
 	for object := range objects {
 		if object.Err != nil {
 			return evidence, object.Err
 		}
-		evidence = append(evidence, database.Evidence{Name: object.Key})
+		evidence = append(evidence, Evidence{Name: object.Key})
 	}
 	return evidence, nil
 }

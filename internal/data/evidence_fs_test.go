@@ -1,9 +1,8 @@
-package storage_test
+package data_test
 
 import (
 	"bytes"
-	database2 "evidence/internal/data/database"
-	"evidence/internal/database"
+	"evidence/internal/data"
 	"io"
 	"testing"
 )
@@ -11,14 +10,14 @@ import (
 func TestMinioMakeEvidence(t *testing.T) {
 	tests := []struct {
 		name          string
-		addEvidence   *database2.Evidence
+		addEvidence   *data.Evidence
 		caseName      string
 		fileForUpload io.Reader
 		wantErr       bool
 	}{
 		{
 			name: "successful with just letters",
-			addEvidence: &database2.Evidence{
+			addEvidence: &data.Evidence{
 				Name: "test",
 			},
 			caseName:      "test",
@@ -27,7 +26,7 @@ func TestMinioMakeEvidence(t *testing.T) {
 		},
 		{
 			name: "successful with just letters and numbers",
-			addEvidence: &database2.Evidence{
+			addEvidence: &data.Evidence{
 				Name: "test23test",
 			},
 			caseName:      "test",
@@ -36,7 +35,7 @@ func TestMinioMakeEvidence(t *testing.T) {
 		},
 		{
 			name: "successful with just letters and supported special characters",
-			addEvidence: &database2.Evidence{
+			addEvidence: &data.Evidence{
 				Name: "test-test",
 			},
 			caseName:      "test",
@@ -45,7 +44,7 @@ func TestMinioMakeEvidence(t *testing.T) {
 		},
 		{
 			name: "failed with space ",
-			addEvidence: &database2.Evidence{
+			addEvidence: &data.Evidence{
 				Name: "test test",
 			},
 			caseName:      "test",
@@ -55,11 +54,11 @@ func TestMinioMakeEvidence(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, err := getTestStores(t)
+			store, err := GetTestStores(t)
 			if err != nil {
 				t.Errorf("failed to get test stores: %v", err)
 			}
-			err = store.CaseFS.Create(&database2.Case{
+			err = store.CaseFS.Create(&data.Case{
 				Name: tt.caseName,
 			})
 			if err != nil {
@@ -74,23 +73,23 @@ func TestMinioMakeEvidence(t *testing.T) {
 	}
 }
 func TestCreatingDifferentEvidenceShouldDifferentiatedHash(t *testing.T) {
-	store, err := getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.CaseFS.Create(&database2.Case{
+	err = store.CaseFS.Create(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	hash1, err := store.EvidenceFS.Create(&database2.Evidence{
+	hash1, err := store.EvidenceFS.Create(&data.Evidence{
 		Name: "test1",
 	}, "test", bytes.NewBufferString("ss"))
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	hash2, err := store.EvidenceFS.Create(&database2.Evidence{
+	hash2, err := store.EvidenceFS.Create(&data.Evidence{
 		Name: "test2",
 	}, "test", bytes.NewBufferString("ssss"))
 	if err != nil {
@@ -102,20 +101,20 @@ func TestCreatingDifferentEvidenceShouldDifferentiatedHash(t *testing.T) {
 
 }
 func TestCreatingNewEvidenceWithExistingName(t *testing.T) {
-	store, err := database.getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.CaseFS.Create(&database2.Case{
+	err = store.CaseFS.Create(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	_, err = store.StoreFS.CreateEvidence(&database2.Evidence{
+	_, err = store.EvidenceFS.Create(&data.Evidence{
 		Name: "test",
 	}, "test", bytes.NewBufferString("s"))
-	_, err = store.StoreFS.CreateEvidence(&database2.Evidence{
+	_, err = store.EvidenceFS.Create(&data.Evidence{
 		Name: "test",
 	}, "test", bytes.NewBufferString("s"))
 	if err == nil {
@@ -123,14 +122,14 @@ func TestCreatingNewEvidenceWithExistingName(t *testing.T) {
 	}
 }
 func TestDeleteMinioEvidence(t *testing.T) {
-	store, err := database.getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	testCase := &database2.Case{
+	testCase := &data.Case{
 		Name: "test",
 	}
-	testEvidence := &database2.Evidence{
+	testEvidence := &data.Evidence{
 		Name: "test",
 		File: bytes.NewBufferString("s"),
 	}
@@ -139,33 +138,33 @@ func TestDeleteMinioEvidence(t *testing.T) {
 		t.Errorf("failed to add case: %v", err)
 	}
 
-	_, err = store.StoreFS.CreateEvidence(testEvidence, testCase.Name, testEvidence.File)
+	_, err = store.EvidenceFS.Create(testEvidence, testCase.Name, testEvidence.File)
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	err = store.StoreFS.RemoveEvidence(testEvidence, testCase.Name)
+	err = store.EvidenceFS.Remove(testEvidence, testCase.Name)
 	if err != nil {
 		t.Errorf("failed to remove evidence: %v", err)
 	}
 }
 func TestListAllCases(t *testing.T) {
-	store, err := database.getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.CaseFS.Create(&database2.Case{
+	err = store.CaseFS.Create(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = store.CaseFS.Create(&database2.Case{
+	err = store.CaseFS.Create(&data.Case{
 		Name: "test2",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	cases, err := store.StoreFS.ListCases()
+	cases, err := store.CaseFS.List()
 	if err != nil {
 		t.Errorf("failed to list all cases: %v", err)
 	}
@@ -174,14 +173,14 @@ func TestListAllCases(t *testing.T) {
 	}
 }
 func TestListAllEvidence(t *testing.T) {
-	store, err := database.getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	testCase := &database2.Case{
+	testCase := &data.Case{
 		Name: "test",
 	}
-	want := []database2.Evidence{
+	want := []data.Evidence{
 		{
 			Name: "test",
 			File: bytes.NewBufferString("file1"),
@@ -196,12 +195,12 @@ func TestListAllEvidence(t *testing.T) {
 		t.Errorf("failed to add case: %v", err)
 	}
 	for _, e := range want {
-		_, err = store.StoreFS.CreateEvidence(&e, testCase.Name, e.File)
+		_, err = store.EvidenceFS.Create(&e, testCase.Name, e.File)
 		if err != nil {
 			t.Errorf("failed to add evidence: %v", err)
 		}
 	}
-	evidence, err := store.StoreFS.ListEvidences(testCase.Name)
+	evidence, err := store.EvidenceFS.List(testCase.Name)
 	if err != nil {
 		t.Errorf("failed to list all evidence: %v", err)
 	}
@@ -210,18 +209,18 @@ func TestListAllEvidence(t *testing.T) {
 	}
 }
 func TestDownloadingNonExistedEvidenceFailed(t *testing.T) {
-	store, err := database.getTestStores(t)
+	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	testCase := &database2.Case{
+	testCase := &data.Case{
 		Name: "test",
 	}
 	err = store.CaseFS.Create(testCase)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	_, err = store.StoreFS.GetEvidence(testCase.Name, "something")
+	_, err = store.EvidenceFS.Get(testCase.Name, "something")
 	if err.Error() != "The specified key does not exist." {
 		t.Errorf("expected error, got %v", err)
 	}

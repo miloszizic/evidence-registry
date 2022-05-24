@@ -195,7 +195,7 @@ func TestCreatedANewUserSuccessfully(t *testing.T) {
 		t.Errorf("Error creating a new request: %v", err)
 	}
 	response := httptest.NewRecorder()
-	app.createUserHandler(response, request)
+	app.CreateUserHandler(response, request)
 	if status := response.Code; status != http.StatusCreated {
 		t.Errorf("Handler returned wrong status code. Expected: %d. Got: %d.", http.StatusCreated, status)
 	}
@@ -209,7 +209,7 @@ func TestCreatedANewUserFailedWithBadJSONRequest(t *testing.T) {
 		t.Errorf("Error creating a new request: %v", err)
 	}
 	response := httptest.NewRecorder()
-	app.createUserHandler(response, request)
+	app.CreateUserHandler(response, request)
 	if status := response.Code; status != http.StatusBadRequest {
 		t.Errorf("Handler returned wrong status code. Expected: %d. Got: %d.", http.StatusBadRequest, status)
 	}

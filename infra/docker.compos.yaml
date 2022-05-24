@@ -1,7 +1,7 @@
 # Settings and configurations that are common for all containers
 x-minio-common: &minio-common
   image: quay.io/minio/minio:RELEASE.2022-05-08T23-50-31Z
-  command: server --console-address ":9001" http://minio{1...4}/data{1...2}
+  command: server --console-address ":9001" http://minio{1...4}/database{1...2}
   expose:
     - "9000"
     - "9001"
@@ -56,7 +56,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-database:/var/lib/postgresql/database
       - ./create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
   nginx:
     image: nginx:1.19.2-alpine

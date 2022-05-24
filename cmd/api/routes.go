@@ -23,12 +23,11 @@ func (app *Application) routes() http.Handler {
 		// Routes
 
 		// users
-		r.Post("/register", app.createUserHandler)
+		r.Post("/register", app.CreateUserHandler)
 		// cases
 		r.Post("/cases", app.CreateCaseHandler)
 		r.Get("/cases", app.ListCasesHandler)
 		r.Delete("/cases/{caseID}", app.RemoveCaseHandler)
-		//r.Post("/cases/{caseID}/tags", app.UpdateCaseTagHandler)
 		// evidences
 		r.Get("/cases/{caseID}/evidences", app.ListEvidencesHandler)
 		r.Post("/cases/{caseID}/evidences", app.CreateEvidenceHandler)

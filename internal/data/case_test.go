@@ -1,10 +1,10 @@
 ////go:build integration
 
-package database_test
+package data_test
 
 import (
 	"database/sql"
-	database2 "evidence/internal/data/database"
+	"evidence/internal/data"
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -17,14 +17,14 @@ func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := &database2.Case{
+	want := &data.Case{
 		ID:   1,
 		Name: "TestCase",
 	}
-	reqCase := &database2.Case{
+	reqCase := &data.Case{
 		Name: "TestCase",
 	}
-	reqUser := &database2.User{
+	reqUser := &data.User{
 		ID:       1,
 		Username: "TestUser",
 	}
@@ -44,25 +44,25 @@ func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting cases: %v", err)
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
+	if !cmp.Equal(got, want, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
 func TestCaseCreation(t *testing.T) {
 	testCases := []struct {
 		name     string
-		caseData *database2.Case
-		userData *database2.User
+		caseData *data.Case
+		userData *data.User
 		password string
 		wantErr  bool
 	}{
 		{
 			name: "with valid database",
-			caseData: &database2.Case{
+			caseData: &data.Case{
 				Name: "TestCase",
 				Tags: []string{"tag1", "tag2"},
 			},
-			userData: &database2.User{
+			userData: &data.User{
 				ID:       1,
 				Username: "TestUser",
 			},
@@ -71,11 +71,11 @@ func TestCaseCreation(t *testing.T) {
 		},
 		{
 			name: "with invalid database",
-			caseData: &database2.Case{
+			caseData: &data.Case{
 				Name: "",
 				Tags: []string{"tag1", "tag2"},
 			},
-			userData: &database2.User{
+			userData: &data.User{
 				ID:       1,
 				Username: "TestUser",
 			},
@@ -110,15 +110,15 @@ func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := &database2.Case{
+	want := &data.Case{
 		ID:   1,
 		Name: "TestCase",
 	}
 
-	reqCase := &database2.Case{
+	reqCase := &data.Case{
 		Name: "TestCase",
 	}
-	reqUser := &database2.User{
+	reqUser := &data.User{
 		ID:       1,
 		Username: "TestUser2",
 	}
@@ -138,7 +138,7 @@ func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting cases: %v", err)
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
+	if !cmp.Equal(got, want, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
@@ -157,11 +157,11 @@ func TestCaseFoundByNameWasSuccessfullyDeletedInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	testCase := &database2.Case{
+	testCase := &data.Case{
 		ID:   1,
 		Name: "TestCase2",
 	}
-	testUser := &database2.User{
+	testUser := &data.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -201,13 +201,13 @@ func TestReturnedAllCasesForSpecificUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []database2.Case{
+	want := []data.Case{
 		{Name: "TestCase"},
 		{Name: "TestCase2"},
 		{Name: "TestCase3"},
 	}
 
-	testUser := &database2.User{
+	testUser := &data.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -230,7 +230,7 @@ func TestReturnedAllCasesForSpecificUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error retriving cases for specific user ID : %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
@@ -239,13 +239,13 @@ func TestRetrieveAllCasesInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []database2.Case{
+	want := []data.Case{
 		{Name: "TestCase"},
 		{Name: "TestCase2"},
 		{Name: "TestCase3"},
 	}
 
-	testUser := &database2.User{
+	testUser := &data.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -268,7 +268,7 @@ func TestRetrieveAllCasesInDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get all cases: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
@@ -277,11 +277,11 @@ func TestRetireCasesByTags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
 	}
-	want := []database2.Case{
+	want := []data.Case{
 		{Name: "TestCase", Tags: []string{"tag1", "tag2"}},
 	}
 	// Create a user
-	testUser := &database2.User{
+	testUser := &data.User{
 		ID:       1,
 		Username: "TestUser3",
 	}
@@ -303,7 +303,7 @@ func TestRetireCasesByTags(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get cases by tags: %v", err)
 	}
-	if !cmp.Equal(want, got, cmpopts.IgnoreFields(database2.Case{}, "ID")) {
+	if !cmp.Equal(want, got, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 

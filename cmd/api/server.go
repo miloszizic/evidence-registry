@@ -104,13 +104,6 @@ func (app *Application) Serve() error {
 		"addr": srv.Addr,
 		"env":  app.config.Env,
 	})
-	online := app.stores.StoreFS.Minio.IsOnline()
-	switch online {
-	case true:
-		app.logger.PrintInfo("Minio is online", nil)
-	case false:
-		app.logger.PrintError(errors.New("FS is offline"), nil)
-	}
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {

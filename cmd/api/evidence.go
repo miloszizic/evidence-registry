@@ -34,7 +34,7 @@ func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	// list evidences in FS
-	evidencesFS, err := app.stores.StoreFS.ListEvidences(cs.Name)
+	evidencesFS, err := app.stores.EvidenceFS.List(cs.Name)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -92,7 +92,7 @@ func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Req
 	_, err = app.stores.EvidenceDB.GetByName(cs, evidence.Name)
 	if err == sql.ErrNoRows {
 		// create the evidence in FS and generate hash
-		hash, err := app.stores.StoreFS.AddEvidence(evidence, cs.Name, file)
+		hash, err := app.stores.EvidenceFS.Create(evidence, cs.Name, file)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return
@@ -149,7 +149,7 @@ func (app *Application) GetEvidenceHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	// get evidence from FS
-	object, err := app.stores.StoreFS.GetEvidence(cs.Name, ev.Name)
+	object, err := app.stores.EvidenceFS.Get(cs.Name, ev.Name)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -196,7 +196,7 @@ func (app *Application) DeleteEvidenceHandler(w http.ResponseWriter, r *http.Req
 		}
 	}
 	// remove evidnece from FS
-	err = app.stores.StoreFS.RemoveEvidence(ev, cs.Name)
+	err = app.stores.EvidenceFS.Remove(ev, cs.Name)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

@@ -14,7 +14,7 @@ var (
 	ErrExpiredToken = errors.New("tokenMaker has expired")
 )
 
-//Payload contains information about data of the tokenMaker
+//Payload contains information about database of the tokenMaker
 type Payload struct {
 	ID        uuid.UUID `json:"id"`
 	Username  string    `json:"username"`

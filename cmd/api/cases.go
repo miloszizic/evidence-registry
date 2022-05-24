@@ -18,8 +18,8 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 	user, err := app.payloadUserChecker(r)
 	if err != nil {
 		switch {
-		case err == ErrInvalidToken:
-			app.notPermittedResponse(w, r)
+		case err.Error() == "sql: no rows in result set":
+			app.notFoundResponse(w, r)
 			return
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -37,8 +37,14 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 	cs := &data.Case{
 		Name: req.Name,
 	}
-	//create case in minio storage
-	err = app.stores.StoreFS.AddCase(cs)
+	// check if case already exists
+	exists, err := app.stores.CaseDB.GetByName(req.Name)
+	if exists != nil {
+		app.caseAlreadyExists(w, r)
+		return
+	}
+	//create case in FS storage
+	err = app.stores.CaseFS.Create(cs)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -46,8 +52,8 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 	// create a bucket in the database
 	err = app.stores.CaseDB.Add(cs, user)
 	if err != nil {
-		// delete the bucket from FS of the case was not created in the database
-		err = app.stores.StoreFS.RemoveCase(cs.Name)
+		// delete the case from FS storage
+		err = app.stores.CaseFS.Remove(cs.Name)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return
@@ -90,7 +96,7 @@ func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	err = app.stores.StoreFS.RemoveCase(req.Name)
+	err = app.stores.CaseFS.Remove(req.Name)
 	if err != nil {
 		switch {
 		case err.Error() == "case does not exist":
@@ -104,14 +110,9 @@ func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request
 	// remove the case in the database
 	err = app.stores.CaseDB.Remove(cs)
 	if err != nil {
-		switch {
-		case err.Error() == "case not found":
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		app.serverErrorResponse(w, r, err)
+		return
+
 	}
 	// write the response
 	err = app.writeJSON(w, http.StatusOK, envelope{"CaseDB": "case successfully removed"}, nil)
@@ -135,7 +136,7 @@ func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	//get all cases in the FS
-	storageCases, err := app.stores.StoreFS.ListCases()
+	fsCases, err := app.stores.CaseFS.List()
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -143,7 +144,7 @@ func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request)
 	// remove cases that are not in the database
 	var finalListOfCases []data.Case
 	for _, dbCase := range dbCases {
-		for _, storageCase := range storageCases {
+		for _, storageCase := range fsCases {
 			if dbCase.Name == storageCase.Name {
 				finalListOfCases = append(finalListOfCases, dbCase)
 			}

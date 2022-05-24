@@ -1,8 +1,8 @@
 ////go:build integration
-package database_test
+package data_test
 
 import (
-	"evidence/internal/data/database"
+	"evidence/internal/data"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -11,13 +11,13 @@ import (
 func TestCreatingUser(t *testing.T) {
 	testCases := []struct {
 		name     string
-		user     *database.User
+		user     *data.User
 		password string
 		wantErr  bool
 	}{
 		{
 			name: "successfully with correct database",
-			user: &database.User{
+			user: &data.User{
 				Username: "simba",
 			},
 			password: "123456",
@@ -25,7 +25,7 @@ func TestCreatingUser(t *testing.T) {
 		},
 		{
 			name: "failed with incorrect database",
-			user: &database.User{
+			user: &data.User{
 				Username: "",
 			},
 			password: "123456",
@@ -54,13 +54,13 @@ func TestCreatingUser(t *testing.T) {
 func TestUserCredentials(t *testing.T) {
 	testCases := []struct {
 		name        string
-		user        *database.User
+		user        *data.User
 		setPassword string
 		password    string
 		match       bool
 	}{{
 		name: "with correct password matches",
-		user: &database.User{
+		user: &data.User{
 			Username: "Simba",
 		},
 		setPassword: "opsAdmin",
@@ -69,7 +69,7 @@ func TestUserCredentials(t *testing.T) {
 	},
 		{
 			name: "with correct password matches",
-			user: &database.User{
+			user: &data.User{
 				Username: "phoebe",
 			},
 			setPassword: "opsAdmin",
@@ -78,7 +78,7 @@ func TestUserCredentials(t *testing.T) {
 		},
 		{
 			name: "with incorrect password does not match",
-			user: &database.User{
+			user: &data.User{
 				Username: "Mufasa",
 			},
 			setPassword: "opsAdmin",
@@ -115,7 +115,7 @@ func TestUserCredentials(t *testing.T) {
 	}
 }
 func TestAddingUserWithEmptyPasswordFails(t *testing.T) {
-	user := &database.User{
+	user := &data.User{
 		Username: "simba",
 	}
 	err := user.Password.Set("")
@@ -127,14 +127,14 @@ func TestDeletionOfUser(t *testing.T) {
 	testCases := []struct {
 		name     string
 		password string
-		addUser  *database.User
+		addUser  *data.User
 		id       int64
 		wantErr  bool
 	}{
 		{
 			name:     "that exists successful",
 			password: "123456",
-			addUser: &database.User{
+			addUser: &data.User{
 				Username: "Simba",
 			},
 			id:      1,
@@ -143,7 +143,7 @@ func TestDeletionOfUser(t *testing.T) {
 		{
 			name:     "that also exists successful",
 			password: "123456",
-			addUser: &database.User{
+			addUser: &data.User{
 				Username: "Pheobe",
 			},
 			id:      1,
@@ -152,7 +152,7 @@ func TestDeletionOfUser(t *testing.T) {
 		{
 			name:     "that does not exist unsuccessful",
 			password: "123456",
-			addUser: &database.User{
+			addUser: &data.User{
 				Username: "Mufasa",
 			},
 			id:      10,

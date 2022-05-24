@@ -34,7 +34,7 @@ func seedForHandlerTesting(t *testing.T, app *Application) {
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = app.stores.StoreFS.AddCase(cs)
+	err = app.stores.CaseFS.Create(cs)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestCreateEvidenceHandler(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to create evidence: %v", err)
 			}
-			// create a body with multipart form data
+			// create a body with multipart form database
 			body := new(bytes.Buffer)
 			writer := multipart.NewWriter(body)
 			part, _ := writer.CreateFormFile("uploadfile", tt.evidenceNameToAdd)
@@ -218,7 +218,7 @@ func TestRetrieveEvidence(t *testing.T) {
 			seedForHandlerTesting(t, app)
 			// add evidenceIDToGet to the database
 
-			hash, err := app.stores.StoreFS.AddEvidence(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
+			hash, err := app.stores.EvidenceFS.Create(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
 			if err != nil {
 				return
 			}
@@ -289,6 +289,17 @@ func TestDeleteEvidence(t *testing.T) {
 				Name:   "video",
 				File:   bytes.NewBufferString("test"),
 			},
+			caseID:           "1b",
+			deleteEvidenceID: "1",
+			want:             http.StatusBadRequest,
+		},
+		{
+			name: "with wrong evidenceID format fails",
+			addEvidence: &data.Evidence{
+				CaseID: 1,
+				Name:   "video",
+				File:   bytes.NewBufferString("test"),
+			},
 			caseID:           "1",
 			deleteEvidenceID: "1b",
 			want:             http.StatusBadRequest,
@@ -312,7 +323,7 @@ func TestDeleteEvidence(t *testing.T) {
 			// seed the database with one user,case and evidence for testing
 			seedForHandlerTesting(t, app)
 			// add evidence to the database
-			hash, err := app.stores.StoreFS.AddEvidence(tt.addEvidence, "test", tt.addEvidence.File)
+			hash, err := app.stores.EvidenceFS.Create(tt.addEvidence, "test", tt.addEvidence.File)
 			if err != nil {
 				return
 			}
@@ -381,7 +392,7 @@ func TestListingEvidencesFromCaseReturnsCorrectNumberOfEvidences(t *testing.T) {
 	}
 	// add evidence to the database and FS
 	for _, evidence := range want {
-		hash, err := app.stores.StoreFS.AddEvidence(evidence, "test", evidence.File)
+		hash, err := app.stores.EvidenceFS.Create(evidence, "test", evidence.File)
 		if err != nil {
 			return
 		}
@@ -521,7 +532,7 @@ func TestAddCommentsToEvidences(t *testing.T) {
 				},
 			}
 			for _, evidence := range evidences {
-				hash, err := app.stores.StoreFS.AddEvidence(evidence, "test", evidence.File)
+				hash, err := app.stores.EvidenceFS.Create(evidence, "test", evidence.File)
 				if err != nil {
 					return
 				}

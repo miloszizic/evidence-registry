@@ -1,9 +1,8 @@
-package storage
+package data
 
 import (
 	"context"
 	"errors"
-	"evidence/internal/data/database"
 	"github.com/minio/minio-go/v7"
 )
 
@@ -16,7 +15,7 @@ type CaseFS struct {
 // Names must be between 3 and 63 characters long.
 // Names can consist only of lowercase letters, numbers, dots (.), and hyphens (-).
 // Names must begin and end with a letter or number.
-func (c *CaseFS) Create(cs *database.Case) error {
+func (c *CaseFS) Create(cs *Case) error {
 	exists, err := c.Minio.BucketExists(context.Background(), cs.Name)
 	if exists {
 		return errors.New("case already exists")
@@ -48,14 +47,14 @@ func (c *CaseFS) Remove(name string) error {
 }
 
 // List returns a list of cases in the storeFS
-func (c *CaseFS) List() ([]database.Case, error) {
-	var cases []database.Case
+func (c *CaseFS) List() ([]Case, error) {
+	var cases []Case
 	buckets, err := c.Minio.ListBuckets(context.Background())
 	if err != nil {
 		return cases, err
 	}
 	for _, bucket := range buckets {
-		cases = append(cases, database.Case{Name: bucket.Name})
+		cases = append(cases, Case{Name: bucket.Name})
 	}
 	return cases, nil
 }

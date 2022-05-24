@@ -41,11 +41,6 @@ func (app *Application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
 
-func (app *Application) invalidAuthorisationHeader(w http.ResponseWriter, r *http.Request) {
-	message := "invalid authentication header"
-	app.errorResponse(w, r, http.StatusUnauthorized, message)
-}
-
 func (app *Application) invalidCredentialsResponse(w http.ResponseWriter, r *http.Request) {
 	message := "invalid authentication credentials"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
@@ -68,6 +63,10 @@ func (app *Application) notPermittedResponse(w http.ResponseWriter, r *http.Requ
 
 func (app *Application) evidenceAlreadyExists(w http.ResponseWriter, r *http.Request) {
 	message := "evidence already exists"
+	app.errorResponse(w, r, http.StatusConflict, message)
+}
+func (app *Application) caseAlreadyExists(w http.ResponseWriter, r *http.Request) {
+	message := "case already exists"
 	app.errorResponse(w, r, http.StatusConflict, message)
 }
 func (app *Application) noEvidenceAttacked(w http.ResponseWriter, r *http.Request) {
