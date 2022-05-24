@@ -36,11 +36,11 @@ func NewApplication(config data.Config) (*Application, error) {
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
-	minioCfg := config.Minio
+	minioConfig := config.Minio
 	minioClient, err := data.FromMinio(
-		minioCfg.Endpoint,
-		minioCfg.AccessKey,
-		minioCfg.SecretKey,
+		minioConfig.Endpoint,
+		minioConfig.AccessKey,
+		minioConfig.SecretKey,
 	)
 	if err != nil {
 		logger.PrintFatal(err, nil)
@@ -50,7 +50,7 @@ func NewApplication(config data.Config) (*Application, error) {
 		tokenMaker: tokenMaker,
 		config:     config,
 		stores:     data.NewStores(db, minioClient),
-		//minio:      minioClient,
+		//minioConfig:      minioClient,
 	}
 	//TODO: remove after testing the minio UI
 	//add default user
@@ -59,7 +59,6 @@ func NewApplication(config data.Config) (*Application, error) {
 	}
 	user.Password.Set("opsAdmin")
 	app.stores.UserDB.Add(user)
-	//END
 	return app, nil
 
 }
@@ -126,6 +125,9 @@ func Run() {
 	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config.json file is provided before the Application starts.")
 	flag.Parse()
 	config, err := data.LoadProductionConfig(*boolPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
 	app, err := NewApplication(config)
 	if err != nil {
 		log.Fatal(err)

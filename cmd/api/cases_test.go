@@ -49,7 +49,7 @@ func TestCreatingCases(t *testing.T) {
 		{
 			name: "with LOWERCASE and allowed special characters succeeded",
 			requestBody: map[string]interface{}{
-				"name": "pspg-k-25-22",
+				"name": "ospg-k-25-22",
 			},
 			wantStatus: http.StatusCreated,
 		},
@@ -380,53 +380,7 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, response.Code)
 	}
 }
-func TestNonAdminUserFailedToDeleteCase(t *testing.T) {
-	app := newTestServer(t)
-	user := &data.User{
-		Username: "test",
-		Role:     "user",
-	}
-	err := user.Password.Set("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = app.stores.UserDB.Add(user)
-	if err != nil {
-		t.Fatal(err)
-	}
-	user.ID = 1
-	payload := &Payload{
-		Username: "test",
-	}
-	//adding the cases to the database and storage
-	cs := &data.Case{
-		Name: "ssss",
-	}
-	err = app.stores.CaseDB.Add(cs, user)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = app.stores.CaseFS.Create(cs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	requestBody := map[string]interface{}{
-		"name": "ssss",
-	}
-	body, err := json.Marshal(requestBody)
-	//Making a delete request
-	request := httptest.NewRequest("DELETE", "/cases", bytes.NewBuffer(body))
-	//Adding payload ctx to request
-	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
-	reqWithPayload := request.WithContext(ctx)
-	//Recording the response
-	response := httptest.NewRecorder()
-	app.RemoveCaseHandler(response, reqWithPayload)
-	//Checking the status code
-	if response.Code != http.StatusForbidden {
-		t.Errorf("expected status %d, got %d", http.StatusForbidden, response.Code)
-	}
-}
+
 func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	//Creating a test server
 	app := newTestServer(t)
@@ -475,7 +429,7 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	//Recording the response
 	response := httptest.NewRecorder()
 	app.ListCasesHandler(response, reqWithPayload)
-
+	// decode the response body
 	var got CaseListResponse
 	err = json.NewDecoder(response.Body).Decode(&got)
 	if err != nil {
@@ -484,55 +438,4 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	if !cmp.Equal(got, want, cmpopts.IgnoreFields(data.Case{}, "ID")) {
 		t.Errorf("got %v, want %v", got, want)
 	}
-}
-
-func TestListedAllCasesFailedForNonAdminUser(t *testing.T) {
-	//Creating a test server
-	app := newTestServer(t)
-	user := &data.User{
-		Username: "test",
-	}
-	//Adding a user to the database
-	err := user.Password.Set("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	user.Role = "normal"
-	err = app.stores.UserDB.Add(user)
-	if err != nil {
-		t.Fatal(err)
-	}
-	user.ID = 1
-	//adding the cases to the database and storage
-	type CaseListResponse struct {
-		Cases []data.Case `json:"cases"`
-	}
-	want := CaseListResponse{
-		Cases: []data.Case{{Name: "pspg-k-25-22"}, {Name: "pspg-k-25-23"}, {Name: "pspg-k-25-24"}}}
-
-	for _, cs := range want.Cases {
-		err = app.stores.CaseDB.Add(&cs, user)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = app.stores.CaseFS.Create(&cs)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	payload := &Payload{
-		Username: "test",
-	}
-	//Making a get request
-	request := httptest.NewRequest("GET", "/cases", nil)
-	//Adding payload ctx to request
-	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
-	reqWithPayload := request.WithContext(ctx)
-	//Recording the response
-	response := httptest.NewRecorder()
-	app.ListCasesHandler(response, reqWithPayload)
-	if response.Code != http.StatusForbidden {
-		t.Errorf("expected status %d, got %d", http.StatusForbidden, response.Code)
-	}
-
 }

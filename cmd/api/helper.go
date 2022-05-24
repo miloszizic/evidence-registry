@@ -12,17 +12,25 @@ import (
 	"strings"
 )
 
-func (app *Application) payloadUserChecker(r *http.Request) (*data.User, error) {
-	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
-	user, err := app.stores.UserDB.GetByUsername(authPayload.Username)
-	if err != nil {
-		return nil, err
-	}
-	if user.Role != "admin" {
-		return nil, permissionDenied
-	}
-	return user, nil
-}
+//func (app *Application) contextUserChecker(r *http.Request) (*data.User, error) {
+//	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
+//	if authPayload == nil {
+//		return nil, errors.New("no user found in context")
+//	}
+//	user, err := app.stores.UserDB.GetByUsername(authPayload.Username)
+//	if err != nil {
+//		switch {
+//		case err == sql.ErrNoRows:
+//			return nil, errors.New("user not found")
+//		default:
+//			return nil, err
+//		}
+//	}
+//	if user.Role != "admin" {
+//		return nil, errors.New("user is not an admin")
+//	}
+//	return user, nil
+//}
 
 // readIDParam reads an id param from a request.
 func (app *Application) getCaseFromUrl(r *http.Request) (*data.Case, error) {

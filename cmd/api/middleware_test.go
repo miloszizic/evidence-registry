@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			name: "should fail with invalid token",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
-				request.Header.Set(authorizationHeaderKey, "Bearer invalid-token")
+				request.Header.Set(authorizationHeaderKey, "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSJ9.c7SpmftjdwaJH6gNkoyxrjxgTrX9tXgWK3ZZ8mAvJIY")
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {
@@ -69,7 +70,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			},
 		},
 		{
-			name: "should fail with invalid token type",
+			name: "should fail with invalid token payload",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
 				request.Header.Set(authorizationHeaderKey, "Basic invalid-token")
@@ -129,6 +130,56 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			tc.setupAuth(t, request, tokenMaker)
 			app.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			})).ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestMiddlewarePermissions(t *testing.T) {
+	testCases := []struct {
+		name          string
+		request       func() *http.Request
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "denied with the user does not exist",
+			request: func() *http.Request {
+				request := httptest.NewRequest("GET", "/", nil)
+				payload := &Payload{
+					Username: "user",
+				}
+				ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+				reqWithPayload := request.WithContext(ctx)
+				return reqWithPayload
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				if recorder.Code != http.StatusUnauthorized {
+					t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, recorder.Code)
+				}
+			},
+		},
+		{
+			name: "denied if payload is empty",
+			request: func() *http.Request {
+				request := httptest.NewRequest("GET", "/", nil)
+				payload := &Payload{}
+				ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+				reqWithPayload := request.WithContext(ctx)
+				return reqWithPayload
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				if recorder.Code != http.StatusUnauthorized {
+					t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, recorder.Code)
+				}
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newTestServer(t)
+			recorder := httptest.NewRecorder()
+			app.MiddlewarePermissionChecker(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			})).ServeHTTP(recorder, tc.request())
 			tc.checkResponse(t, recorder)
 		})
 	}

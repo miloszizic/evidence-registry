@@ -102,7 +102,7 @@ func TestUserCredentials(t *testing.T) {
 			}
 			got, err := store.UserDB.GetByUsername(tc.user.Username)
 			if err != nil {
-				t.Errorf("retrieving specified user failed with error: %v", err)
+				t.Error(err)
 			}
 			match, err := got.Password.Matches(tc.password)
 			if err != nil {

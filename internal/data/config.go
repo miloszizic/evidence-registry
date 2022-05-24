@@ -3,7 +3,7 @@ package data
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"time"
 )
 
@@ -12,11 +12,10 @@ const alphabet = "abcdefghijklmnopqrstuvwxyz"
 type Config struct {
 	Port                int            `json:"port"`
 	Env                 string         `json:"env"`
-	Pepper              string         `json:"pepper"`
 	SymmetricKey        string         `json:"symmetric"`
 	AccessTokenDuration time.Duration  `json:"duration"`
 	Database            PostgresConfig `json:"database"`
-	Minio               MinioConfig    `json:"ostorage"`
+	Minio               MinioConfig    `json:"minio"`
 }
 
 type PostgresConfig struct {
@@ -40,23 +39,51 @@ func (p *PostgresConfig) ConnectionInfo() string {
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", p.Host, p.Port, p.User, p.Password, p.Name)
 }
 
+// UnmarshalJSON is a custom unmarshaller for the Config struct
+// that allows us to unmarshal the json into the Config struct
+// with Time.Duration values that are not supported by the default
+func (c *Config) UnmarshalJSON(data []byte) error {
+	var tmp struct {
+		Port                int            `json:"port"`
+		Env                 string         `json:"env"`
+		SymmetricKey        string         `json:"symmetric"`
+		AccessTokenDuration string         `json:"duration"`
+		Database            PostgresConfig `json:"database"`
+		Minio               MinioConfig    `json:"minio"`
+	}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+	duration, err := time.ParseDuration(tmp.AccessTokenDuration)
+	if err != nil {
+		return err
+	}
+	*c = Config{
+		Port:                tmp.Port,
+		Env:                 tmp.Env,
+		SymmetricKey:        tmp.SymmetricKey,
+		AccessTokenDuration: duration,
+		Database:            tmp.Database,
+		Minio:               tmp.Minio,
+	}
+	return nil
+}
+
 //func (c Config) IsProd() bool {
 //	return c.Env == "prod"
 //}
 
 func LoadProductionConfig(prod bool) (Config, error) {
 	if !prod {
-		return DefaultAppConfig(), nil
+		return TestAppConfig(), nil
 	}
-	f, err := os.Open(".config.json")
+	f, err := ioutil.ReadFile(".config.json")
 	if err != nil {
 		return Config{}, err
 	}
-	defer f.Close()
-
 	var c Config
-	dec := json.NewDecoder(f)
-	err = dec.Decode(&c)
+	// unmarshal the json into the config object
+	err = c.UnmarshalJSON(f)
 	if err != nil {
 		return Config{}, err
 	}
@@ -80,12 +107,12 @@ func TestMinioConfig() MinioConfig {
 		SecretKey: "minioadmin",
 	}
 }
-func DefaultAppConfig() Config {
+func TestAppConfig() Config {
 	return Config{
 		Port:                3000,
 		Env:                 "dev",
 		SymmetricKey:        "nigkjtvbrhugwpgaqbemmvnqbtywfrcq",
-		AccessTokenDuration: time.Minute * 15,
+		AccessTokenDuration: time.Hour,
 		Database:            TestPostgresConfig(),
 		Minio:               TestMinioConfig(),
 	}

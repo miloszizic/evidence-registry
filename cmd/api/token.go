@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-var (
-	ErrInvalidToken = errors.New("tokenMaker is invalid")
-	ErrExpiredToken = errors.New("tokenMaker has expired")
-)
-
 //Payload contains information about database of the tokenMaker
 type Payload struct {
 	ID        uuid.UUID `json:"id"`
@@ -24,7 +19,7 @@ type Payload struct {
 
 func (payload *Payload) ValidTime() error {
 	if time.Now().After(payload.ExpiresAt) {
-		return ErrExpiredToken
+		return errors.New("token has expired")
 	}
 	return nil
 }

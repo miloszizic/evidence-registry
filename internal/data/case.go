@@ -16,7 +16,7 @@ type CaseDB struct {
 	DB *sql.DB
 }
 
-//Add a new case to the database
+//Add a new case to the database or return an error
 func (s *CaseDB) Add(cs *Case, user *User) error {
 	if cs.Name == "" {
 		return errors.New("case name can't be empty")
@@ -42,7 +42,6 @@ func (s *CaseDB) Add(cs *Case, user *User) error {
 	if err != nil {
 		return err
 	}
-
 	return tx.Commit()
 }
 
@@ -107,7 +106,7 @@ func (s *CaseDB) GetByUserID(userID int64) ([]Case, error) {
 	return cases, nil
 }
 
-// Remove removes a case from the database
+// Remove removes a case from the database or returns an error
 func (s *CaseDB) Remove(cs *Case) error {
 	// check if the case exists
 	result, err := s.GetByID(cs.ID)
@@ -137,6 +136,7 @@ func (s *CaseDB) Remove(cs *Case) error {
 	return tx.Commit()
 }
 
+//SearchByTags returns cases with matching tags
 func (s *CaseDB) SearchByTags(tags []string) ([]Case, error) {
 	sel := `SELECT * FROM "cases" WHERE $1 <@ tags`
 	rows, err := s.DB.Query(sel, pq.Array(tags))

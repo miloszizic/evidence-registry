@@ -15,10 +15,11 @@ type caseRequest struct {
 //CreateCaseHandler makes a new case for a user in the database and FS
 func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request) {
 	//check payload for user
-	user, err := app.payloadUserChecker(r)
+	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
+	user, err := app.stores.UserDB.GetByUsername(authPayload.Username)
 	if err != nil {
 		switch {
-		case err.Error() == "sql: no rows in result set":
+		case err == sql.ErrNoRows:
 			app.notFoundResponse(w, r)
 			return
 		default:
@@ -71,15 +72,9 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 
 // RemoveCaseHandler removes a case from the database and FS
 func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request) {
-	// check payload for user
-	_, err := app.payloadUserChecker(r)
-	if err != nil {
-		app.notPermittedResponse(w, r)
-		return
-	}
 	// read JSON request
 	var req caseRequest
-	err = app.readJSON(w, r, &req)
+	err := app.readJSON(w, r, &req)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -124,11 +119,7 @@ func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request
 
 // ListCasesHandler returns a list of cases that exist in bought database and storage
 func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request) {
-	//	check the payload for user
-	_, err := app.payloadUserChecker(r)
-	if err != nil {
-		app.notPermittedResponse(w, r)
-	}
+
 	// get all cases from the database
 	dbCases, err := app.stores.CaseDB.List()
 	if err != nil {

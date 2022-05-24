@@ -12,7 +12,7 @@ import (
 // ListEvidencesHandler returns all evidences for a case by comparing evidences in the
 // database with the ones in the FS
 func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Request) {
-	// get the case  from the URL
+
 	cs, err := app.getCaseFromUrl(r)
 	if err != nil {
 		switch {

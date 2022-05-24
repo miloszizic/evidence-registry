@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"evidence/internal/data"
 	"net/http"
 	"time"
@@ -34,8 +35,14 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 	// Login
 	user, err := app.stores.UserDB.GetByUsername(req.Username)
 	if err != nil {
-		app.invalidCredentialsResponse(w, r)
-		return
+		switch {
+		case err == sql.ErrNoRows:
+			app.unauthorizedUser(w, r)
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 	match, err := user.Password.Matches(req.Password)
 	if !match {
@@ -56,7 +63,7 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 		AccessTokenExpiresAt: accessPayload.ExpiresAt,
 		User:                 *user,
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"database": rsp}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": rsp}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

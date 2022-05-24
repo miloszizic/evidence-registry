@@ -18,7 +18,6 @@ func (app *Application) logError(r *http.Request, err error) {
 
 func (app *Application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message interface{}) {
 	env := envelope{"error": message}
-
 	err := app.writeJSON(w, status, env, nil)
 	if err != nil {
 		app.logError(r, err)
@@ -50,9 +49,13 @@ func (app *Application) invalidAuthorisationHeaderFormat(w http.ResponseWriter, 
 	message := "invalid authorization header format"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
-
 func (app *Application) tokenExpired(w http.ResponseWriter, r *http.Request) {
 	message := "Your token has expired"
+	app.errorResponse(w, r, http.StatusUnauthorized, message)
+}
+
+func (app *Application) unauthorizedUser(w http.ResponseWriter, r *http.Request) {
+	message := "user is not authorized to access this resource"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
 
@@ -65,10 +68,12 @@ func (app *Application) evidenceAlreadyExists(w http.ResponseWriter, r *http.Req
 	message := "evidence already exists"
 	app.errorResponse(w, r, http.StatusConflict, message)
 }
+
 func (app *Application) caseAlreadyExists(w http.ResponseWriter, r *http.Request) {
 	message := "case already exists"
 	app.errorResponse(w, r, http.StatusConflict, message)
 }
+
 func (app *Application) noEvidenceAttacked(w http.ResponseWriter, r *http.Request) {
 	message := "no evidence in request body"
 	app.errorResponse(w, r, http.StatusBadRequest, message)

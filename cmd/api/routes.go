@@ -20,6 +20,7 @@ func (app *Application) routes() http.Handler {
 	r.Group(func(r chi.Router) {
 		// using auth middleware
 		r.Use(app.AuthMiddleware)
+		r.Use(app.MiddlewarePermissionChecker)
 		// Routes
 
 		// users

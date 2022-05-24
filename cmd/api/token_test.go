@@ -14,22 +14,22 @@ func TestTokenGeneratedAndVerifiedForUser(t *testing.T) {
 		duration time.Duration
 	}{
 		{
-			name:     "U1",
+			name:     "1",
 			username: "Simba",
 			duration: time.Duration(1) * time.Hour,
 		},
 		{
-			name:     "U2",
+			name:     "2",
 			username: "Pumba",
 			duration: time.Duration(1) * time.Hour,
 		},
 		{
-			name:     "U3",
+			name:     "3",
 			username: "Timon",
 			duration: time.Duration(1) * time.Hour,
 		},
 		{
-			name:     "U4",
+			name:     "4",
 			username: "Nala",
 			duration: time.Duration(1) * time.Hour,
 		},
