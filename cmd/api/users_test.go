@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"evidence/internal/data"
-	"evidence/jsonlog"
 	"github.com/minio/minio-go/v7"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +14,12 @@ import (
 
 func newTestServer(t *testing.T) *Application {
 	//Making test application
-	config, err := data.LoadProductionConfig(false)
-	logger := jsonlog.New(jsonlog.LevelInfo)
+	config, err := data.LoadProductionConfig("")
+	if err != nil {
+		t.Errorf("Error loading config: %v", err)
+	}
+	//logger := jsonlog.New(jsonlog.LevelInfo)
+	logger := InitLogger()
 	tokenMaker, err := NewPasetoMaker(config.SymmetricKey)
 	if err != nil {
 		t.Errorf("failed to create tokenMaker maker: %v", err)
@@ -148,7 +151,7 @@ func TestUserLogin(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to set password: %v", err)
 			}
-			err = app.stores.UserDB.Add(user)
+			err = app.stores.User.Add(user)
 			if err != nil {
 				t.Errorf("Failed to add user: %s", err)
 			}
@@ -190,6 +193,9 @@ func TestCreatedANewUserSuccessfully(t *testing.T) {
 		"password": "opsAdmin1",
 	}
 	requestBody, err := json.Marshal(createUserBody)
+	if err != nil {
+		t.Errorf("Failed to marshal request body: %s", err)
+	}
 	request, err := http.NewRequest("POST", "/register", bytes.NewReader(requestBody))
 	if err != nil {
 		t.Errorf("Error creating a new request: %v", err)
@@ -204,6 +210,9 @@ func TestCreatedANewUserFailedWithBadJSONRequest(t *testing.T) {
 
 	app := newTestServer(t)
 	requestBody, err := json.Marshal("badJsonRequest")
+	if err != nil {
+		t.Errorf("Failed to marshal request body: %s", err)
+	}
 	request, err := http.NewRequest("POST", "/register", bytes.NewReader(requestBody))
 	if err != nil {
 		t.Errorf("Error creating a new request: %v", err)

@@ -1,7 +1,9 @@
+version: '3.7'
+
 # Settings and configurations that are common for all containers
 x-minio-common: &minio-common
-  image: quay.io/minio/minio:RELEASE.2022-05-08T23-50-31Z
-  command: server --console-address ":9001" http://minio{1...4}/database{1...2}
+  image: quay.io/minio/minio:RELEASE.2022-05-26T05-48-41Z
+  command: server --console-address ":9001" http://minio{1...4}/data{1...2}
   expose:
     - "9000"
     - "9001"
@@ -45,19 +47,7 @@ services:
     volumes:
       - data4-1:/data1
       - data4-2:/data2
-  postgres_db:
-    image: postgres
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - DATABASE_HOST=127.0.0.1
 
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-database:/var/lib/postgresql/database
-      - ./create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
   nginx:
     image: nginx:1.19.2-alpine
     hostname: nginx
@@ -71,7 +61,7 @@ services:
       - minio2
       - minio3
       - minio4
-      - postgres_db
+
 ## By default this config uses default local driver,
 ## For custom volumes replace with volume driver configuration.
 volumes:
@@ -83,4 +73,3 @@ volumes:
   data3-2:
   data4-1:
   data4-2:
-  postgres-data:

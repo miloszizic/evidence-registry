@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"evidence/internal/data"
-	"evidence/jsonlog"
 	"flag"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,25 +16,52 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/natefinch/lumberjack"
 )
 
 type Application struct {
-	logger     *jsonlog.Logger
+	logger     *zap.SugaredLogger
 	tokenMaker Maker
 	config     data.Config
 	stores     data.Stores
 	wg         sync.WaitGroup
 }
 
+func Run() {
+	conf, output, err := data.ParseFlags(os.Args[0], os.Args[1:])
+	if err == flag.ErrHelp {
+		fmt.Println(output)
+		os.Exit(2)
+	} else if err != nil {
+		fmt.Println("got error:", err)
+		fmt.Println("output:\n", output)
+		os.Exit(1)
+	}
+	settings, err := data.LoadProductionConfig(conf.Path)
+	if err != nil {
+		fmt.Println("got error:", err)
+	}
+	app, err := NewApplication(settings)
+	if err != nil {
+		app.logger.Fatal("failed to create application", zap.Error(err))
+	}
+	err = app.Serve()
+	if err != nil {
+		app.logger.Fatal("failed to serve", zap.Error(err))
+	}
+
+}
+
 func NewApplication(config data.Config) (*Application, error) {
-	logger := jsonlog.New(jsonlog.LevelInfo)
+	logger := InitLogger()
+	defer logger.Sync()
 	tokenMaker, err := NewPasetoMaker(config.SymmetricKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create tokenMaker maker: %w", err)
+		return nil, fmt.Errorf("failed to create paseto maker for tokens: %w", err)
 	}
 	db, err := data.FromPostgresDB(config.Database.ConnectionInfo())
 	if err != nil {
-		logger.PrintFatal(err, nil)
+		logger.Fatal("calling database failed", zap.Error(err))
 	}
 	minioConfig := config.Minio
 	minioClient, err := data.FromMinio(
@@ -43,7 +70,7 @@ func NewApplication(config data.Config) (*Application, error) {
 		minioConfig.SecretKey,
 	)
 	if err != nil {
-		logger.PrintFatal(err, nil)
+		logger.Fatal("calling minio failed", zap.Error(err))
 	}
 	app := &Application{
 		logger:     logger,
@@ -52,13 +79,18 @@ func NewApplication(config data.Config) (*Application, error) {
 		stores:     data.NewStores(db, minioClient),
 		//minioConfig:      minioClient,
 	}
-	//TODO: remove after testing the minio UI
 	//add default user
 	user := &data.User{
 		Username: "Simba",
 	}
-	user.Password.Set("opsAdmin")
-	app.stores.UserDB.Add(user)
+	err = user.Password.Set("opsAdmin")
+	if err != nil {
+		return nil, err
+	}
+	err = app.stores.User.Add(user)
+	if err != nil {
+		return nil, err
+	}
 	return app, nil
 
 }
@@ -79,9 +111,7 @@ func (app *Application) Serve() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		s := <-quit
 
-		app.logger.PrintInfo("caught signal", map[string]string{
-			"signal": s.String(),
-		})
+		app.logger.Info("caught signal", zap.String("signal", s.String()))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -91,18 +121,13 @@ func (app *Application) Serve() error {
 			shutdownError <- err
 		}
 
-		app.logger.PrintInfo("completing background tasks", map[string]string{
-			"addr": srv.Addr,
-		})
+		app.logger.Info("completing background tasks", zap.String("addr", srv.Addr))
 
 		app.wg.Wait()
 		shutdownError <- nil
 	}()
 
-	app.logger.PrintInfo("starting server", map[string]string{
-		"addr": srv.Addr,
-		"env":  app.config.Env,
-	})
+	app.logger.Info("starting background tasks", zap.String("addr", srv.Addr), zap.String("env", app.config.Env))
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -114,33 +139,36 @@ func (app *Application) Serve() error {
 		return err
 	}
 
-	app.logger.PrintInfo("stopped server", map[string]string{
-		"addr": srv.Addr,
-	})
+	app.logger.Info("stopped server", zap.String("addr", srv.Addr))
 
 	return nil
 }
 
-func Run() {
-	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config.json file is provided before the Application starts.")
-	flag.Parse()
-	config, err := data.LoadProductionConfig(*boolPtr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	app, err := NewApplication(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = app.Serve()
-	if err != nil {
-		log.Fatal(err)
-	}
-	must(err)
+func InitLogger() *zap.SugaredLogger {
+	writeSyncer := getLogWriter()
+	encoder := getEncoder()
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel),
+	)
+	logger := zap.New(core, zap.AddCaller())
+	sugarLogger := logger.Sugar()
+	return sugarLogger
 }
 
-func must(err error) {
-	if err != nil {
-		panic(err)
+func getEncoder() zapcore.Encoder {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	return zapcore.NewConsoleEncoder(encoderConfig)
+}
+func getLogWriter() zapcore.WriteSyncer {
+	lumberJackLogger := &lumberjack.Logger{
+		Filename:   "./test.log",
+		MaxSize:    1,
+		MaxBackups: 5,
+		MaxAge:     30,
+		Compress:   false,
 	}
+	return zapcore.AddSync(lumberJackLogger)
 }

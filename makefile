@@ -9,23 +9,33 @@ dev.setup.mac:
 	brew list kubectl || brew install kubectl
 	brew list kustomize || brew install kustomize
 
+# ==============================================================================
+# -d detached mode
+# -p name of the project
 
 docker.compose.starter.mac:
-	docker-compose -f infra/docker.compos.yaml up -d
-docker.compose.teardown.mac:
-	docker-compose -f infra/docker.compos.yaml down -v
+	docker-compose -f infra/docker-compose-minio.yaml -p fs up -d
+	docker-compose -f infra/docker-compose-postgres.yaml -p db up -d
 
-documented.tests.integration:
+docker.compose.teardown.mac:
+	docker-compose -f infra/docker-compose-minio.yaml -p fs down -v --remove-orphans
+	docker-compose -f infra/docker-compose-postgres.yaml -p db down -v --remove-orphans
+
+tests.integration:
 	gotestdox ./... --tags=integration
-documented.tests:
+tests:
 	gotestdox ./internal/...
 	gotestdox ./cmd/...
-
+tests.summary:
+	go test ./internal/... -cover -json | tparse -all
+#	go test ./internal/... fmt -cover -json > fmt.out
+#	tparse -all -file=fmt.out
+#	rm -f fmt.out
 
 # ==============================================================================
 # Run the app locally
 run:
-	go run ./cmd/main.go
+	go run main.go
 
 # ======================================================================
 VERSION := 1.0

@@ -2,6 +2,7 @@
 package data_test
 
 import (
+	"errors"
 	"evidence/internal/data"
 	"testing"
 
@@ -42,7 +43,7 @@ func TestCreatingUser(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = store.UserDB.Add(tc.user)
+			err = store.User.Add(tc.user)
 			if err != nil {
 				if !tc.wantErr {
 					t.Fatal(err)
@@ -96,11 +97,11 @@ func TestUserCredentials(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			err = store.UserDB.Add(tc.user)
+			err = store.User.Add(tc.user)
 			if err != nil {
 				t.Error(err)
 			}
-			got, err := store.UserDB.GetByUsername(tc.user.Username)
+			got, err := store.User.GetByUsername(tc.user.Username)
 			if err != nil {
 				t.Error(err)
 			}
@@ -169,11 +170,11 @@ func TestDeletionOfUser(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = store.UserDB.Add(tc.addUser)
+			err = store.User.Add(tc.addUser)
 			if err != nil {
 				t.Error(err)
 			}
-			err = store.UserDB.Remove(tc.id) // delete user
+			err = store.User.Remove(tc.id) // delete user
 			gotErr := err != nil
 			if gotErr != tc.wantErr {
 				t.Errorf("expected error to be %v but got %v", tc.wantErr, gotErr)
@@ -187,8 +188,22 @@ func TestSearchingForNonExistingUserByIDFailed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = store.UserDB.GetByID(1)
-	if err == nil {
-		t.Errorf("expected error, got nil")
+	_, err = store.User.GetByID(1)
+	//check error code
+	var verr *data.Error
+	if !errors.As(err, &verr) || verr.Code() != data.ErrCodeNotFound {
+		t.Errorf("expected error code %v but got %v", data.ErrCodeNotFound, verr.Code())
+	}
+
+}
+func TestSearchingForNonExistingUserByUsernameFailed(t *testing.T) {
+	store, err := GetTestStores(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.User.GetByUsername("Simba")
+	var verr *data.Error
+	if !errors.As(err, &verr) || verr.Code() != data.ErrCodeNotFound {
+		t.Errorf("expected error code %v but got %v", data.ErrCodeNotFound, verr.Code())
 	}
 }

@@ -20,8 +20,11 @@ func seedForHandlerTesting(t *testing.T, app *Application) {
 	user := &data.User{
 		Username: "test",
 	}
-	user.Password.Set("test")
-	err := app.stores.UserDB.Add(user)
+	err := user.Password.Set("test")
+	if err != nil {
+		t.Errorf("failed to set password: %v", err)
+	}
+	err = app.stores.User.Add(user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,11 +33,11 @@ func seedForHandlerTesting(t *testing.T, app *Application) {
 		Name: "test",
 	}
 	user.ID = 1
-	err = app.stores.CaseDB.Add(cs, user)
+	err = app.stores.DBStore.AddCase(cs, user)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = app.stores.CaseFS.Create(cs)
+	err = app.stores.OBStore.CreateCase(cs)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
@@ -57,7 +60,7 @@ func TestCreateEvidenceHandler(t *testing.T) {
 			},
 			caseID:            "1",
 			evidenceNameToAdd: "picture",
-			want:              http.StatusOK,
+			want:              http.StatusCreated,
 		},
 		{
 			name: "that already exists returns an error",
@@ -111,16 +114,25 @@ func TestCreateEvidenceHandler(t *testing.T) {
 			// seed the database with one user,case and evidence for testing
 			seedForHandlerTesting(t, app)
 			// add evidence to the database
-			_, err := app.stores.EvidenceDB.Create(tt.alreadyAddedEvidence)
+			_, err := app.stores.DBStore.CreateEvidence(tt.alreadyAddedEvidence)
 			if err != nil {
 				t.Errorf("failed to create evidence: %v", err)
 			}
 			// create a body with multipart form database
 			body := new(bytes.Buffer)
 			writer := multipart.NewWriter(body)
-			part, _ := writer.CreateFormFile("uploadfile", tt.evidenceNameToAdd)
-			part.Write([]byte(`sample-content`))
-			writer.Close()
+			part, err := writer.CreateFormFile("upload_file", tt.evidenceNameToAdd)
+			if err != nil {
+				t.Errorf("create file failed with error: %v", err)
+			}
+			_, err = part.Write([]byte(`sample-content`))
+			if err != nil {
+				return
+			}
+			err = writer.Close()
+			if err != nil {
+				return
+			}
 			// create a request
 			req, err := http.NewRequest("POST", "/", body)
 			if err != nil {
@@ -199,7 +211,7 @@ func TestRetrieveEvidence(t *testing.T) {
 			want:            http.StatusBadRequest,
 		},
 		{
-			name: "with not evidence ID that doesn't exist fails",
+			name: "with evidence ID that doesn't exist fails",
 			alreadyAddedEvidence: &data.Evidence{
 				CaseID: 1,
 				Name:   "video",
@@ -214,16 +226,26 @@ func TestRetrieveEvidence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// create a new test server
 			app := newTestServer(t)
-			// seed the database with one user,case and evidenceIDToGet for testing
+			// seed the database with one user and case for testing
 			seedForHandlerTesting(t, app)
 			// add evidenceIDToGet to the database
-
-			hash, err := app.stores.EvidenceFS.Create(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
+			//user := &data.User{
+			//	Username: "test",
+			//}
+			//err := user.Password.Set("test")
+			//if err != nil {
+			//	t.Errorf("failed to set password: %v", err)
+			//}
+			//err = app.stores.User.AddCase(user)
+			//if err != nil {
+			//	t.Errorf("failed to add user: %v", err)
+			//}
+			hash, err := app.stores.OBStore.CreateEvidence(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
 			if err != nil {
 				return
 			}
 			tt.alreadyAddedEvidence.Hash = hash
-			_, err = app.stores.EvidenceDB.Create(tt.alreadyAddedEvidence)
+			_, err = app.stores.DBStore.CreateEvidence(tt.alreadyAddedEvidence)
 			if err != nil {
 				t.Errorf("failed to create evidence: %v", err)
 			}
@@ -237,7 +259,7 @@ func TestRetrieveEvidence(t *testing.T) {
 			payload := &Payload{
 				Username: "test",
 			}
-			// add payload, URL parms and context
+			// add payload, URL params and context
 			rct := chi.NewRouteContext()
 			rct.URLParams.Add("caseID", tt.caseID)
 			rct.URLParams.Add("evidenceID", tt.evidenceIDToGet)
@@ -323,12 +345,12 @@ func TestDeleteEvidence(t *testing.T) {
 			// seed the database with one user,case and evidence for testing
 			seedForHandlerTesting(t, app)
 			// add evidence to the database
-			hash, err := app.stores.EvidenceFS.Create(tt.addEvidence, "test", tt.addEvidence.File)
+			hash, err := app.stores.OBStore.CreateEvidence(tt.addEvidence, "test", tt.addEvidence.File)
 			if err != nil {
 				return
 			}
 			tt.addEvidence.Hash = hash
-			_, err = app.stores.EvidenceDB.Create(tt.addEvidence)
+			_, err = app.stores.DBStore.CreateEvidence(tt.addEvidence)
 			if err != nil {
 				t.Errorf("failed to create evidence: %v", err)
 			}
@@ -390,14 +412,14 @@ func TestListingEvidencesFromCaseReturnsCorrectNumberOfEvidences(t *testing.T) {
 			File:   bytes.NewBufferString("test2"),
 		},
 	}
-	// add evidence to the database and FS
+	// add evidence to the database and OBStore
 	for _, evidence := range want {
-		hash, err := app.stores.EvidenceFS.Create(evidence, "test", evidence.File)
+		hash, err := app.stores.OBStore.CreateEvidence(evidence, "test", evidence.File)
 		if err != nil {
 			return
 		}
 		evidence.Hash = hash
-		_, err = app.stores.EvidenceDB.Create(evidence)
+		_, err = app.stores.DBStore.CreateEvidence(evidence)
 		if err != nil {
 			t.Errorf("failed to create evidence: %v", err)
 		}
@@ -492,7 +514,7 @@ func TestAddCommentsToEvidences(t *testing.T) {
 				"text": "something to say",
 			},
 			evidenceID: "1",
-			want:       http.StatusOK,
+			want:       http.StatusCreated,
 		},
 		{
 			name: "with invalid evidenceID fails",
@@ -532,12 +554,12 @@ func TestAddCommentsToEvidences(t *testing.T) {
 				},
 			}
 			for _, evidence := range evidences {
-				hash, err := app.stores.EvidenceFS.Create(evidence, "test", evidence.File)
+				hash, err := app.stores.OBStore.CreateEvidence(evidence, "test", evidence.File)
 				if err != nil {
 					return
 				}
 				evidence.Hash = hash
-				_, err = app.stores.EvidenceDB.Create(evidence)
+				_, err = app.stores.DBStore.CreateEvidence(evidence)
 				if err != nil {
 					t.Errorf("failed to create evidence: %v", err)
 				}
@@ -560,11 +582,12 @@ func TestAddCommentsToEvidences(t *testing.T) {
 			// add payload, URL params and context
 			rct := chi.NewRouteContext()
 			rct.URLParams.Add("evidenceID", tt.evidenceID)
+			rct.URLParams.Add("caseID", "1")
 			ctx := context.WithValue(req.Context(), authorizationPayloadKey, payload)
 			ctx = context.WithValue(ctx, chi.RouteCtxKey, rct)
 			req = req.WithContext(ctx)
 			// call the handler
-			app.AddCommentToEvidenceHandler(rec, req)
+			app.AddCommentHandler(rec, req)
 			// check for correct status code
 			if rec.Code != tt.want {
 				t.Errorf("expected status code %d, got %d", tt.want, rec.Code)

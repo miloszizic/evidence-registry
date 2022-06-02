@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"evidence/internal/data"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"net/http"
@@ -75,7 +76,7 @@ func TestCreatingCases(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.UserDB.Add(user)
+			err = app.stores.User.Add(user)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -96,6 +97,50 @@ func TestCreatingCases(t *testing.T) {
 			}
 		})
 	}
+}
+func TestRetrievingCaseHandler(t *testing.T) {
+	tests := []struct {
+		name       string
+		caseID     string
+		wantStatus int
+	}{
+		{
+			name:       "with a valid caseID succeeded",
+			caseID:     "1",
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "with an invalid caseID failed",
+			caseID:     "2",
+			wantStatus: http.StatusNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := newTestServer(t)
+			// seed the database
+			seedForHandlerTesting(t, app)
+			request, err := http.NewRequest("GET", "/cases/"+tt.caseID, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			payload := &Payload{
+				Username: "test",
+			}
+			rct := chi.NewRouteContext()
+			rct.URLParams.Add("caseID", tt.caseID)
+			//Adding payload ctx to request
+			ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+			ctx = context.WithValue(ctx, chi.RouteCtxKey, rct)
+			reqWithPayload := request.WithContext(ctx)
+			response := httptest.NewRecorder()
+			app.GetCaseHandler(response, reqWithPayload)
+			if response.Code != tt.wantStatus {
+				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
+			}
+		})
+	}
+
 }
 func TestCaseRemovedFromFSWhenTheAddingToDBFails(t *testing.T) {
 	app := newTestServer(t)
@@ -118,14 +163,14 @@ func TestCaseRemovedFromFSWhenTheAddingToDBFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.stores.UserDB.Add(user)
+	err = app.stores.User.Add(user)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cs := &data.Case{
 		Name: "test",
 	}
-	err = app.stores.CaseDB.Add(cs, user)
+	err = app.stores.DBStore.AddCase(cs, user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +224,7 @@ func TestBadJSONRequestFailsOnPOST(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.UserDB.Add(user)
+			err = app.stores.User.Add(user)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -219,7 +264,7 @@ func TestCaseShouldNotBeCreatedIfUserDoesNotExist(t *testing.T) {
 	response := httptest.NewRecorder()
 	app.CreateCaseHandler(response, reqWithPayload)
 	if response.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
+		t.Errorf("expected status %d, got %d", http.StatusNotFound, response.Code)
 	}
 }
 func TestCaseDeletion(t *testing.T) {
@@ -260,7 +305,7 @@ func TestCaseDeletion(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.UserDB.Add(user)
+			err = app.stores.User.Add(user)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -272,11 +317,11 @@ func TestCaseDeletion(t *testing.T) {
 			cs := &data.Case{
 				Name: tt.caseToAdd,
 			}
-			err = app.stores.CaseDB.Add(cs, user)
+			err = app.stores.DBStore.AddCase(cs, user)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.CaseFS.Create(cs)
+			err = app.stores.OBStore.CreateCase(cs)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -305,7 +350,7 @@ func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.stores.UserDB.Add(user)
+	err = app.stores.User.Add(user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +362,7 @@ func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
 	cs := &data.Case{
 		Name: "ssss",
 	}
-	err = app.stores.CaseFS.Create(cs)
+	err = app.stores.OBStore.CreateCase(cs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,6 +370,9 @@ func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
 		"name": "ssss",
 	}
 	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatal(err)
+	}
 	//Making a delete request
 	request := httptest.NewRequest("DELETE", "/cases", bytes.NewBuffer(body))
 	//Adding payload ctx to request
@@ -347,7 +395,7 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.stores.UserDB.Add(user)
+	err = app.stores.User.Add(user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +407,7 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 	cs := &data.Case{
 		Name: "ssss",
 	}
-	err = app.stores.CaseDB.Add(cs, user)
+	err = app.stores.DBStore.AddCase(cs, user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,6 +415,9 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 		"name": "ssss",
 	}
 	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatal(err)
+	}
 	//Making a delete request
 	request := httptest.NewRequest("DELETE", "/cases", bytes.NewBuffer(body))
 	//Adding payload ctx to request
@@ -392,7 +443,7 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = app.stores.UserDB.Add(user)
+	err = app.stores.User.Add(user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,19 +456,22 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 		Cases: []data.Case{{Name: "pspg-k-25-22"}, {Name: "pspg-k-25-23"}, {Name: "pspg-k-25-24"}}}
 
 	for _, cs := range want.Cases {
-		err = app.stores.CaseDB.Add(&cs, user)
+		err = app.stores.DBStore.AddCase(&cs, user)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = app.stores.CaseFS.Create(&cs)
+		err = app.stores.OBStore.CreateCase(&cs)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	//Add additional case to storage to test filtering
-	err = app.stores.CaseFS.Create(&data.Case{
+	//AddCase additional case to storage to test filtering
+	err = app.stores.OBStore.CreateCase(&data.Case{
 		Name: "pspg-k-25-25",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	payload := &Payload{
 		Username: "test",
 	}
@@ -425,6 +479,7 @@ func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
 	request := httptest.NewRequest("GET", "/cases", nil)
 	//Adding payload ctx to request
 	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+
 	reqWithPayload := request.WithContext(ctx)
 	//Recording the response
 	response := httptest.NewRecorder()

@@ -1,19 +1,15 @@
 package api
 
 import (
-	"errors"
+	"go.uber.org/zap"
 	"net/http"
 )
 
-var (
-	permissionDenied = errors.New("permission denied")
-)
-
 func (app *Application) logError(r *http.Request, err error) {
-	app.logger.PrintError(err, map[string]string{
-		"request_method": r.Method,
-		"request_url":    r.URL.String(),
-	})
+	app.logger.Error("error processing request",
+		zap.String("request_method", r.Method),
+		zap.String("request_url", r.URL.String()),
+		zap.Error(err))
 }
 
 func (app *Application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message interface{}) {
@@ -59,22 +55,7 @@ func (app *Application) unauthorizedUser(w http.ResponseWriter, r *http.Request)
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
 
-func (app *Application) notPermittedResponse(w http.ResponseWriter, r *http.Request) {
-	message := "your user account doesn't have the necessary permissions to access this resource"
-	app.errorResponse(w, r, http.StatusForbidden, message)
-}
-
-func (app *Application) evidenceAlreadyExists(w http.ResponseWriter, r *http.Request) {
-	message := "evidence already exists"
+func (app *Application) alreadyExists(w http.ResponseWriter, r *http.Request) {
+	message := "resource already exists"
 	app.errorResponse(w, r, http.StatusConflict, message)
-}
-
-func (app *Application) caseAlreadyExists(w http.ResponseWriter, r *http.Request) {
-	message := "case already exists"
-	app.errorResponse(w, r, http.StatusConflict, message)
-}
-
-func (app *Application) noEvidenceAttacked(w http.ResponseWriter, r *http.Request) {
-	message := "no evidence in request body"
-	app.errorResponse(w, r, http.StatusBadRequest, message)
 }

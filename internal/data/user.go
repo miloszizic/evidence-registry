@@ -23,7 +23,7 @@ type password struct {
 // Set takes a plaintext password and hashes it.
 func (p *password) Set(plaintextPassword string) error {
 	if plaintextPassword == "" {
-		return errors.New("password cannot be empty")
+		return NewErrorf(ErrCodeInvalid, "password cannot be empty")
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
 	if err != nil {
@@ -51,6 +51,17 @@ func (p *password) Matches(plaintextPassword string) (bool, error) {
 	return true, nil
 }
 
+type UserStore interface {
+	Add(user *User) error
+	GetByID(id int64) (*User, error)
+	GetByUsername(username string) (*User, error)
+	Remove(id int64) error
+}
+
+func NewUserStore(db *sql.DB) UserStore {
+	return &UserDB{DB: db}
+}
+
 type UserDB struct {
 	DB *sql.DB
 }
@@ -58,7 +69,7 @@ type UserDB struct {
 // Add adds a user to the database if the username and password are not empty.
 func (u *UserDB) Add(user *User) error {
 	if user.Username == "" || user.Password.plaintext == nil {
-		return errors.New("username and password can't be empty")
+		return NewErrorf(ErrCodeInvalid, "username and password cannot be empty")
 	}
 	if user.Role == "" {
 		user.Role = "admin"
@@ -71,6 +82,12 @@ func (u *UserDB) Add(user *User) error {
 func (u *UserDB) GetByID(id int64) (*User, error) {
 	var user User
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE id = $1", id).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, WrapErrorf(err, ErrCodeNotFound, "user not found")
+		}
+		return nil, err
+	}
 	return &user, err
 }
 
@@ -78,6 +95,12 @@ func (u *UserDB) GetByID(id int64) (*User, error) {
 func (u *UserDB) GetByUsername(username string) (*User, error) {
 	var user User
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, WrapErrorf(err, ErrCodeNotFound, "user not found")
+		}
+		return nil, err
+	}
 	return &user, err
 }
 
@@ -92,7 +115,7 @@ func (u *UserDB) Remove(id int64) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("user does not exist")
+		return NewErrorf(ErrCodeNotFound, "user not found")
 	}
 	return nil
 }

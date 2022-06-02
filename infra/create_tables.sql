@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS "evidences" (
 	"name"	VARCHAR(255) NOT NULL,
 	"hash"	VARCHAR(255) NOT NULL,
 	PRIMARY KEY("id"),
-	CONSTRAINT "fk_cases_objects" FOREIGN KEY("case_id") REFERENCES "cases"("id")
+	CONSTRAINT "fk_cases_evidence" FOREIGN KEY("case_id") REFERENCES "cases"("id")
 );
 
 CREATE TABLE IF NOT EXISTS "comments" (

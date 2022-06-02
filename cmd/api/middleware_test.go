@@ -26,7 +26,7 @@ func addAuthorization(
 	}
 
 	authorizationHeader := fmt.Sprintf("%s %s", authorizationType, token)
-	request.Header.Set(authorizationHeaderKey, authorizationHeader)
+	request.Header.Set(string(authorizationHeaderKey), authorizationHeader)
 }
 func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 	testCases := []struct {
@@ -49,7 +49,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			name: "should fail with invalid token",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
-				request.Header.Set(authorizationHeaderKey, "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSJ9.c7SpmftjdwaJH6gNkoyxrjxgTrX9tXgWK3ZZ8mAvJIY")
+				request.Header.Set(string(authorizationHeaderKey), "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSJ9.c7SpmftjdwaJH6gNkoyxrjxgTrX9tXgWK3ZZ8mAvJIY")
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {
@@ -61,7 +61,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			name: "should fail with missing token",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
-				request.Header.Del(authorizationHeaderKey)
+				request.Header.Del(string(authorizationHeaderKey))
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {
@@ -73,7 +73,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			name: "should fail with invalid token payload",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
-				request.Header.Set(authorizationHeaderKey, "Basic invalid-token")
+				request.Header.Set(string(authorizationHeaderKey), "Basic invalid-token")
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {
@@ -97,7 +97,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 			name: "should fail with invalid token type",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
 				addAuthorization(t, request, tokenMaker, "Bearer", "user", time.Hour)
-				request.Header.Set(authorizationHeaderKey, "Basic invalid-token")
+				request.Header.Set(string(authorizationHeaderKey), "Basic invalid-token")
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {
@@ -108,7 +108,7 @@ func TestMiddlewareAuthWithRequestHeader(t *testing.T) {
 		{
 			name: "invalid authorization header",
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker Maker) {
-				request.Header.Set(authorizationHeaderKey, "invalid-token")
+				request.Header.Set(string(authorizationHeaderKey), "invalid-token")
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				if recorder.Code != http.StatusUnauthorized {

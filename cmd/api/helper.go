@@ -12,46 +12,32 @@ import (
 	"strings"
 )
 
-//func (app *Application) contextUserChecker(r *http.Request) (*data.User, error) {
-//	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
-//	if authPayload == nil {
-//		return nil, errors.New("no user found in context")
-//	}
-//	user, err := app.stores.UserDB.GetByUsername(authPayload.Username)
-//	if err != nil {
-//		switch {
-//		case err == sql.ErrNoRows:
-//			return nil, errors.New("user not found")
-//		default:
-//			return nil, err
-//		}
-//	}
-//	if user.Role != "admin" {
-//		return nil, errors.New("user is not an admin")
-//	}
-//	return user, nil
-//}
-
 // readIDParam reads an id param from a request.
-func (app *Application) getCaseFromUrl(r *http.Request) (*data.Case, error) {
+func (app *Application) caseParser(r *http.Request) (*data.Case, error) {
 	urlID := chi.URLParam(r, "caseID")
 	id, err := strconv.ParseInt(urlID, 10, 64)
 	if err != nil || id < 1 {
-		return nil, errors.New("invalid id parameter")
+		return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "invalid id parameter")
 	}
-	cs, err := app.stores.CaseDB.GetByID(id)
+	cs, err := app.stores.GetCaseByID(id)
 	if err != nil {
 		return nil, err
 	}
 	return cs, nil
 }
-func (app *Application) getEvidenceFromUrl(r *http.Request) (*data.Evidence, error) {
-	urlID := chi.URLParam(r, "evidenceID")
-	id, err := strconv.ParseInt(urlID, 10, 64)
+
+// evidenceParser parses the request url and returns caseID and evidenceID.
+func (app *Application) evidenceParser(r *http.Request) (*data.Evidence, error) {
+	evID := chi.URLParam(r, "evidenceID")
+	id, err := strconv.ParseInt(evID, 10, 64)
 	if err != nil || id < 1 {
-		return nil, errors.New("invalid id parameter")
+		return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "invalid id parameter")
 	}
-	ev, err := app.stores.EvidenceDB.GetByID(id)
+	cs, err := app.caseParser(r)
+	if err != nil {
+		return nil, err
+	}
+	ev, err := app.stores.GetEvidenceByID(id, cs.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +67,8 @@ func (app *Application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-func (app *Application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	maxBytes := 1_048_576
-	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
-
-	dec := json.NewDecoder(r.Body)
+func (app *Application) readJSON(r *http.Request, dst interface{}) error {
+	dec := json.NewDecoder(io.LimitReader(r.Body, 1_048_576))
 	dec.DisallowUnknownFields()
 
 	err := dec.Decode(dst)
@@ -115,7 +98,7 @@ func (app *Application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 			return fmt.Errorf("body contains unknown key %s", fieldName)
 
 		case err.Error() == "http: request body too large":
-			return fmt.Errorf("body must not be larger than %d bytes", maxBytes)
+			return fmt.Errorf("body must not be larger than %d bytes", 1_048_576)
 
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
@@ -131,4 +114,66 @@ func (app *Application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	}
 
 	return nil
+}
+
+// respondError writes an error response to all kinds of errors.
+func (app *Application) respondError(w http.ResponseWriter, r *http.Request, err error) {
+	var verr *data.Error
+	if !errors.As(err, &verr) {
+		switch {
+		case strings.HasPrefix(err.Error(), "body"):
+			app.badRequestResponse(w, r, err)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	} else {
+		switch verr.Code() {
+		case data.ErrCodeNotFound:
+			app.notFoundResponse(w, r)
+		case data.ErrCodeConflict:
+			app.alreadyExists(w, r)
+		case data.ErrCodeInvalidCredentials:
+			app.invalidCredentialsResponse(w, r)
+		case data.ErrCodeExists:
+			app.alreadyExists(w, r)
+		case data.ErrCodeUnknown:
+			app.serverErrorResponse(w, r, err)
+		case data.ErrCodeInvalid:
+			app.badRequestResponse(w, r, err)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	//switch {
+	////api errors
+	//case errors.Is(err, ErrUserNotFound):
+	//	app.unauthorizedUser(w, r)
+	//case errors.Is(err, ErrInvalidCredentials):
+	//	app.invalidCredentialsResponse(w, r)
+	//case errors.Is(err, ErrInvalidID):
+	//	app.badRequestResponse(w, r, err)
+	//case errors.Is(err, ErrNoFileFound):
+	//	app.badRequestResponse(w, r, err)
+	//case errors.Is(err, ErrEvidenceNotFound):
+	//	app.notFoundResponse(w, r)
+	//// data store errors
+	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeNotFound:
+	//	app.notFoundResponse(w, r)
+	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeConflict:
+	//	app.alreadyExists(w, r)
+	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeInvalid:
+	//	app.badRequestResponse(w, r, err)
+	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeExists:
+	//	app.alreadyExists(w, r)
+	//	// minio errors
+	//case err.Error() == "The specified bucket does not exist":
+	//	app.invalidCaseName(w, r)
+	////JSON errors
+	//case strings.HasPrefix(err.Error(), "body"):
+	//	app.badRequestResponse(w, r, err)
+	//default:
+	//	app.serverErrorResponse(w, r, err)
+	//}
 }

@@ -1,148 +1,114 @@
 package api
 
 import (
-	"database/sql"
 	"evidence/internal/data"
-	"fmt"
 	"net/http"
 )
 
+// caseRequest is the request body for the case API
 type caseRequest struct {
 	Name string `json:"name"`
 	Tag  string `json:"tag"`
 }
 
-//CreateCaseHandler makes a new case for a user in the database and FS
+// CreateCaseHandler creates a new case in the database and OBStore
 func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request) {
-	//check payload for user
-	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
-	user, err := app.stores.UserDB.GetByUsername(authPayload.Username)
+	user, name, err := app.requestParser(r)
 	if err != nil {
-		switch {
-		case err == sql.ErrNoRows:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-	}
-	//read JSON request
-	var req caseRequest
-	err = app.readJSON(w, r, &req)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.respondError(w, r, err)
 		return
 	}
-	// declare the case
-	cs := &data.Case{
-		Name: req.Name,
-	}
-	// check if case already exists
-	exists, err := app.stores.CaseDB.GetByName(req.Name)
-	if exists != nil {
-		app.caseAlreadyExists(w, r)
-		return
-	}
-	//create case in FS storage
-	err = app.stores.CaseFS.Create(cs)
+	err = app.stores.CreateCase(user, name)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.respondError(w, r, err)
 		return
 	}
-	// create a bucket in the database
-	err = app.stores.CaseDB.Add(cs, user)
-	if err != nil {
-		// delete the case from FS storage
-		err = app.stores.CaseFS.Remove(cs.Name)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create the case in db: %v", err))
-		return
-	}
-	//write the response
-	err = app.writeJSON(w, http.StatusCreated, envelope{"Case": "case successfully created"}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
+	app.respondCaseCreated(w, r)
 }
 
-// RemoveCaseHandler removes a case from the database and FS
+// RemoveCaseHandler removes a case from the database and OBStore
 func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request) {
-	// read JSON request
-	var req caseRequest
-	err := app.readJSON(w, r, &req)
+	_, name, err := app.requestParser(r)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.respondError(w, r, err)
 		return
 	}
-	// remove case from FS
-	cs, err := app.stores.CaseDB.GetByName(req.Name)
+	// delete case
+	err = app.stores.RemoveCase(name)
 	if err != nil {
-		switch {
-		case err == sql.ErrNoRows:
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-	}
-	err = app.stores.CaseFS.Remove(req.Name)
-	if err != nil {
-		switch {
-		case err.Error() == "case does not exist":
-			app.notFoundResponse(w, r)
-			return
-		default:
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-	}
-	// remove the case in the database
-	err = app.stores.CaseDB.Remove(cs)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-
-	}
-	// write the response
-	err = app.writeJSON(w, http.StatusOK, envelope{"CaseDB": "case successfully removed"}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.respondError(w, r, err)
 		return
 	}
+	app.respondCaseDeleted(w, r)
+}
+func (app *Application) GetCaseHandler(w http.ResponseWriter, r *http.Request) {
+	cs, err := app.caseParser(r)
+	if err != nil {
+		app.respondError(w, r, err)
+		return
+	}
+	// respond with case
+	app.respondCaseRetrieved(w, r, cs)
 }
 
 // ListCasesHandler returns a list of cases that exist in bought database and storage
 func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request) {
+	// get cases
+	cases, err := app.stores.ListCases()
+	if err != nil {
+		app.respondError(w, r, err)
+		return
+	}
+	// respond with cases
+	app.respondCasesList(w, r, cases)
+}
 
-	// get all cases from the database
-	dbCases, err := app.stores.CaseDB.List()
+// requestParser takes a request and returns a user and the case name
+// if the request is not valid it returns an error
+func (app *Application) requestParser(r *http.Request) (*data.User, string, error) {
+	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
+	user, err := app.stores.User.GetByUsername(authPayload.Username)
+	if err != nil {
+		return nil, "", err
+	}
+	//read JSON request
+	var req caseRequest
+	err = app.readJSON(r, &req)
+	if err != nil {
+		return nil, "", err
+	}
+	return user, req.Name, nil
+}
+
+// respondCaseCreated writes a JSON response with the case created
+func (app *Application) respondCaseRetrieved(w http.ResponseWriter, r *http.Request, cs *data.Case) {
+	err := app.writeJSON(w, http.StatusOK, envelope{"case": cs}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// respondCaseCreated with status for created case
+func (app *Application) respondCaseCreated(w http.ResponseWriter, r *http.Request) {
+	err := app.writeJSON(w, http.StatusCreated, envelope{"Case": "case successfully created"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	//get all cases in the FS
-	fsCases, err := app.stores.CaseFS.List()
+}
+
+// respondCaseDeleted responds with status for deleted case
+func (app *Application) respondCaseDeleted(w http.ResponseWriter, r *http.Request) {
+	err := app.writeJSON(w, http.StatusOK, envelope{"Case": "case successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// remove cases that are not in the database
-	var finalListOfCases []data.Case
-	for _, dbCase := range dbCases {
-		for _, storageCase := range fsCases {
-			if dbCase.Name == storageCase.Name {
-				finalListOfCases = append(finalListOfCases, dbCase)
-			}
-		}
-	}
-	// write the response
-	err = app.writeJSON(w, http.StatusOK, envelope{"Cases": finalListOfCases}, nil)
+}
+
+// respondCasesList responds with a list of cases in JSON
+func (app *Application) respondCasesList(w http.ResponseWriter, r *http.Request, cases []data.Case) {
+	err := app.writeJSON(w, http.StatusOK, envelope{"Cases": cases}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

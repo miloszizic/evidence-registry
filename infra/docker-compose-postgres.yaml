@@ -1,0 +1,13 @@
+postgres:
+  image: postgres:14.3
+  environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_DB=postgres
+    - POSTGRES_HOST_AUTH_METHOD=trust
+    - DATABASE_HOST=127.0.0.1
+  ports:
+    - "5432:5432"
+  volumes:
+    - postgres-database:/var/lib/postgresql/database
+    - ./create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+

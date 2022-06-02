@@ -1,13 +1,13 @@
 package data
 
 import (
+	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"time"
 )
-
-const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 type Config struct {
 	Port                int            `json:"port"`
@@ -30,6 +30,9 @@ type MinioConfig struct {
 	Endpoint  string `json:"endpoint"`
 	AccessKey string `json:"access"`
 	SecretKey string `json:"secret"`
+}
+type ConfigFlag struct {
+	Path string `json:"path"`
 }
 
 func (p *PostgresConfig) ConnectionInfo() string {
@@ -73,11 +76,11 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 //	return c.Env == "prod"
 //}
 
-func LoadProductionConfig(prod bool) (Config, error) {
-	if !prod {
+func LoadProductionConfig(path string) (Config, error) {
+	if path == "" {
 		return TestAppConfig(), nil
 	}
-	f, err := ioutil.ReadFile(".config.json")
+	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		return Config{}, err
 	}
@@ -87,7 +90,7 @@ func LoadProductionConfig(prod bool) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	fmt.Println("Successfully loaded .config.json")
+	fmt.Println("Successfully loaded config file")
 	return c, nil
 }
 
@@ -116,4 +119,18 @@ func TestAppConfig() Config {
 		Database:            TestPostgresConfig(),
 		Minio:               TestMinioConfig(),
 	}
+}
+func ParseFlags(programme string, args []string) (config *ConfigFlag, output string, err error) {
+	flags := flag.NewFlagSet(programme, flag.ContinueOnError)
+	var buf bytes.Buffer
+	flags.SetOutput(&buf)
+
+	var conf ConfigFlag
+	flags.StringVar(&conf.Path, "config", "", "Path to config file")
+
+	err = flags.Parse(args)
+	if err != nil {
+		return nil, buf.String(), err
+	}
+	return &conf, buf.String(), nil
 }
