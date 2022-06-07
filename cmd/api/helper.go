@@ -47,7 +47,7 @@ func (app *Application) evidenceParser(r *http.Request) (*data.Evidence, error) 
 // always returns its response as a non-array JSON object for security reasons.
 type envelope map[string]interface{}
 
-func (app *Application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
+func (*Application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	js, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return err
@@ -61,12 +61,15 @@ func (app *Application) writeJSON(w http.ResponseWriter, status int, data envelo
 
 	w.Header().Set("Content-Type", "Application/json")
 	w.WriteHeader(status)
-	w.Write(js)
+	_, err = w.Write(js)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (app *Application) readJSON(r *http.Request, dst interface{}) error {
+func (*Application) readJSON(r *http.Request, dst interface{}) error {
 	dec := json.NewDecoder(io.LimitReader(r.Body, 1_048_576))
 	dec.DisallowUnknownFields()
 

@@ -6,14 +6,11 @@ import (
 	"time"
 )
 
-type loginUserResponse struct {
-	AccessToken          string    `json:"access_token"`
-	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
-	User                 data.User `json:"user"`
-}
-
-func (app *Application) Ping(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte("pong"))
+func (*Application) Ping(w http.ResponseWriter, _ *http.Request) {
+	_, err := w.Write([]byte("pong"))
+	if err != nil {
+		return
+	}
 }
 
 func (app *Application) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +43,13 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *Application) LoginUser(request *data.UserRequest) (*loginUserResponse, error) {
+type LoginUserResponse struct {
+	AccessToken          string    `json:"access_token"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
+	User                 data.User `json:"user"`
+}
+
+func (app *Application) LoginUser(request *data.UserRequest) (*LoginUserResponse, error) {
 	if request.Username == "" || request.Password == "" {
 		return nil, data.NewErrorf(data.ErrCodeInvalidCredentials, "username and password are required")
 	}
@@ -67,7 +70,7 @@ func (app *Application) LoginUser(request *data.UserRequest) (*loginUserResponse
 	if err != nil {
 		return nil, data.WrapErrorf(err, data.ErrCodeUnknown, "tokenMaker.CreateToken")
 	}
-	rsp := loginUserResponse{
+	rsp := LoginUserResponse{
 		AccessToken:          accessToken,
 		AccessTokenExpiresAt: accessPayload.ExpiresAt,
 		User:                 *user,

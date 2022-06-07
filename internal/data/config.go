@@ -31,9 +31,6 @@ type MinioConfig struct {
 	AccessKey string `json:"access"`
 	SecretKey string `json:"secret"`
 }
-type ConfigFlag struct {
-	Path string `json:"path"`
-}
 
 func (p *PostgresConfig) ConnectionInfo() string {
 	if p.Password == "" {
@@ -71,10 +68,6 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
-
-//func (c Config) IsProd() bool {
-//	return c.Env == "prod"
-//}
 
 func LoadProductionConfig(path string) (Config, error) {
 	if path == "" {
@@ -120,6 +113,11 @@ func TestAppConfig() Config {
 		Minio:               TestMinioConfig(),
 	}
 }
+
+type ConfigFlag struct {
+	Path string `json:"path"`
+}
+
 func ParseFlags(programme string, args []string) (config *ConfigFlag, output string, err error) {
 	flags := flag.NewFlagSet(programme, flag.ContinueOnError)
 	var buf bytes.Buffer

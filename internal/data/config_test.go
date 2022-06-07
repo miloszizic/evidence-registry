@@ -5,7 +5,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/miloszizic/der/internal/data"
 	"io/ioutil"
-	"strings"
 	"testing"
 	"time"
 )
@@ -60,8 +59,7 @@ func TestLoadProductionConfigWasSuccessful(t *testing.T) {
 			SecretKey: "minioadmin",
 		},
 	}
-	confFile := flag.String("config path", "", "Provide a path to a .config.json file. This file should be provided in production.")
-	got, err := data.LoadProductionConfig(*confFile)
+	got, err := data.LoadProductionConfig("")
 	if err != nil {
 		t.Errorf("failed to load production config: %v", err)
 	}
@@ -92,15 +90,21 @@ func TestParsingFlags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			strings.Join(tt.args, " ")
-			got, _, err := data.ParseFlags(tt.name, tt.args)
+			got, _, err := data.ParseFlags("", tt.args)
 			if err != nil {
-				t.Errorf("ParseFlags() error = %v", err)
+				t.Errorf("ParseFlags error: %v", err)
 			}
 			if !cmp.Equal(got, tt.conf) {
 				t.Errorf(cmp.Diff(tt.conf, got))
 			}
 		})
+	}
+}
+func TestParsingFlagsWithHelp(t *testing.T) {
+	argument := []string{"-h"}
+	_, _, err := data.ParseFlags("", argument)
+	if err != flag.ErrHelp {
+		t.Errorf("expected help but got %v", err)
 	}
 
 }

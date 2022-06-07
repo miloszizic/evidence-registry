@@ -76,8 +76,7 @@ func (app *Application) requestParser(r *http.Request) (*data.User, string, erro
 	var req caseRequest
 	err = app.readJSON(r, &req)
 	if err != nil {
-		switch {
-		case strings.HasPrefix(err.Error(), "body"):
+		if strings.HasPrefix(err.Error(), "body") {
 			return nil, "", data.NewErrorf(data.ErrCodeInvalid, "readJSON")
 		}
 		return nil, "", data.WrapErrorf(err, data.ErrCodeUnknown, "requestParser")

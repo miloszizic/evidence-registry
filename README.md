@@ -1,6 +1,7 @@
-# Evidence registry
+# Digital Evidence Registry
 
-This is the evidence registry project that is used to store and manage evidence.
+This is the evidence registry project that is used to store and manage evidence for all courts in the country. .
+
 
 
 
