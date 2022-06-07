@@ -1,6 +1,6 @@
 package main
 
-import "evidence/cmd/api"
+import "github.com/miloszizic/der/cmd/api"
 
 func main() {
 	api.Run()

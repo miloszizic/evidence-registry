@@ -2,12 +2,12 @@ package data_test
 
 import (
 	"bytes"
-	"evidence/internal/data"
+	"github.com/miloszizic/der/internal/data"
 	"io"
 	"testing"
 )
 
-func TestMinioCaseCreation(t *testing.T) {
+func TestCreateCaseInOBS(t *testing.T) {
 	tests := []struct {
 		name    string
 		addCase *data.Case
@@ -70,7 +70,7 @@ func TestMinioCaseCreation(t *testing.T) {
 		})
 	}
 }
-func TestMinioCaseDeletion(t *testing.T) {
+func TestRemoveCaseInOBS(t *testing.T) {
 	tests := []struct {
 		name       string
 		addCase    *data.Case
@@ -112,7 +112,7 @@ func TestMinioCaseDeletion(t *testing.T) {
 		})
 	}
 }
-func TestMinioFailedToAddCaseWithExistingName(t *testing.T) {
+func TestCreateCaseInOBSReturnedErrorBecauseCaseAlreadyExists(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
@@ -126,12 +126,11 @@ func TestMinioFailedToAddCaseWithExistingName(t *testing.T) {
 	err = store.OBStore.CreateCase(&data.Case{
 		Name: "test",
 	})
-	got := err != nil
-	if !got {
-		t.Errorf("expected true, got false")
+	if err == nil {
+		t.Errorf("expected error, got nil")
 	}
 }
-func TestOBSCreateEvidence(t *testing.T) {
+func TestCreateEvidenceInOBS(t *testing.T) {
 	tests := []struct {
 		name        string
 		addEvidence *data.Evidence
@@ -205,7 +204,7 @@ func TestOBSCreateEvidence(t *testing.T) {
 		})
 	}
 }
-func TestRetrieveExistingEvidenceSucceeds(t *testing.T) {
+func TestGetEvidenceInOBSSuccessful(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
@@ -232,7 +231,7 @@ func TestRetrieveExistingEvidenceSucceeds(t *testing.T) {
 	}
 
 }
-func TestCreatingDifferentEvidenceShouldDifferentiatedHash(t *testing.T) {
+func TestCreateEvidenceWithDifferentFilesGeneratedDifferentHashes(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
@@ -260,7 +259,7 @@ func TestCreatingDifferentEvidenceShouldDifferentiatedHash(t *testing.T) {
 	}
 
 }
-func TestDeleteMinioEvidence(t *testing.T) {
+func TestRemoveEvidenceInOBSSuccessful(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
@@ -286,7 +285,7 @@ func TestDeleteMinioEvidence(t *testing.T) {
 		t.Errorf("failed to remove evidence: %v", err)
 	}
 }
-func TestListAllCases(t *testing.T) {
+func TestListCasesInOBSReturnedAllCasesInOBS(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
@@ -311,7 +310,7 @@ func TestListAllCases(t *testing.T) {
 		t.Errorf("expected 2 cases, got %v", len(cases))
 	}
 }
-func TestEvidenceExistsReturns(t *testing.T) {
+func TestEvidenceExistsInOBSReturns(t *testing.T) {
 	tests := []struct {
 		name         string
 		caseName     string
@@ -359,7 +358,7 @@ func TestEvidenceExistsReturns(t *testing.T) {
 		})
 	}
 }
-func TestListAllEvidence(t *testing.T) {
+func TestListEvidencesReturnedAllEvidencesInOBS(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)

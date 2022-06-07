@@ -58,7 +58,7 @@ func NewDBStore(db *sql.DB) DBStore {
 // AddCase a new case to the database or return an error
 func (d *DB) AddCase(cs *Case, user *User) error {
 	if cs.Name == "" {
-		return NewErrorf(ErrCodeInvalid, "caseDB: case name can't be empty")
+		return NewErrorf(ErrCodeInvalid, "case name can't be empty")
 	}
 	tx, err := d.DB.Begin()
 	if err != nil {
@@ -134,7 +134,7 @@ func (d *DB) GetCaseByUserID(userID int64) ([]Case, error) {
 	rows, err := d.DB.Query(`SELECT * FROM "cases" WHERE id IN (SELECT case_id FROM "user_cases" WHERE user_id = $1)`, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NewErrorf(ErrCodeNotFound, "caseDB: case not found")
+			return nil, NewErrorf(ErrCodeNotFound, "case not found")
 		}
 		return nil, err
 	}
@@ -213,7 +213,8 @@ func (d *DB) GetEvidenceByID(id int64, caseID int64) (*Evidence, error) {
 	return &evidence, err
 }
 
-// EvidenceExists is used to check if an evidence exists in the database
+// EvidenceExists is used to check if an evidence exists in the database,
+// evidence must contain a valid case ID in it
 func (d *DB) EvidenceExists(evidence *Evidence) (bool, error) {
 	var count int
 	_ = d.DB.QueryRow("SELECT id FROM evidences WHERE case_id = $1 AND name = $2", evidence.CaseID, evidence.Name).Scan(&count)
@@ -226,7 +227,7 @@ func (d *DB) GetEvidenceByName(cs *Case, name string) (*Evidence, error) {
 	err := d.DB.QueryRow("SELECT id, case_id, name, hash FROM evidences WHERE case_id = $1 AND name = $2", cs.ID, name).Scan(&object.ID, &object.CaseID, &object.Name, &object.Hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, WrapErrorf(err, ErrCodeNotFound, "evidence: evidence not found")
+			return nil, WrapErrorf(err, ErrCodeNotFound, "DB.QueryRow: evidence not found")
 		}
 		return nil, err
 	}

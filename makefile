@@ -3,7 +3,7 @@ SHELL := /bin/bash
 # ==============================================================================
 # Install dependencies for MacOS
 
-dev.setup.mac:
+dev-setup-mac:
 	brew update
 	brew list kind || brew install kind
 	brew list kubectl || brew install kubectl
@@ -13,7 +13,7 @@ dev.setup.mac:
 # -d detached mode
 # -p name of the project
 
-docker.compose.starter.mac:
+docker-compose-testing:
 	docker-compose -f infra/docker-compose-minio.yaml -p fs up -d
 	docker-compose -f infra/docker-compose-postgres.yaml -p db up -d
 
@@ -21,16 +21,12 @@ docker.compose.teardown.mac:
 	docker-compose -f infra/docker-compose-minio.yaml -p fs down -v --remove-orphans
 	docker-compose -f infra/docker-compose-postgres.yaml -p db down -v --remove-orphans
 
-tests.integration:
-	gotestdox ./... --tags=integration
-tests:
+documented-tests:
 	gotestdox ./internal/...
 	gotestdox ./cmd/...
-tests.summary:
+tests-summary:
 	go test ./internal/... -cover -json | tparse -all
-#	go test ./internal/... fmt -cover -json > fmt.out
-#	tparse -all -file=fmt.out
-#	rm -f fmt.out
+	go test ./cmd/... -cover -json | tparse -all
 
 # ==============================================================================
 # Run the app locally

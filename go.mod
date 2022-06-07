@@ -1,4 +1,4 @@
-module evidence
+module github.com/miloszizic/der
 
 go 1.18
 

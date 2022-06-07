@@ -1,8 +1,8 @@
 package api_test
 
 import (
-	"evidence/cmd/api"
 	"github.com/google/go-cmp/cmp"
+	"github.com/miloszizic/der/cmd/api"
 	"testing"
 	"time"
 )

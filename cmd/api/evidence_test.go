@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"evidence/internal/data"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/miloszizic/der/internal/data"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -158,7 +158,7 @@ func TestCreateEvidenceHandler(t *testing.T) {
 		})
 	}
 }
-func TestRetrieveEvidence(t *testing.T) {
+func TestGetEvidenceHandler(t *testing.T) {
 	tests := []struct {
 		name                 string
 		alreadyAddedEvidence *data.Evidence
@@ -228,18 +228,7 @@ func TestRetrieveEvidence(t *testing.T) {
 			app := newTestServer(t)
 			// seed the database with one user and case for testing
 			seedForHandlerTesting(t, app)
-			// add evidenceIDToGet to the database
-			//user := &data.User{
-			//	Username: "test",
-			//}
-			//err := user.Password.Set("test")
-			//if err != nil {
-			//	t.Errorf("failed to set password: %v", err)
-			//}
-			//err = app.stores.User.AddCase(user)
-			//if err != nil {
-			//	t.Errorf("failed to add user: %v", err)
-			//}
+
 			hash, err := app.stores.OBStore.CreateEvidence(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
 			if err != nil {
 				return
@@ -266,7 +255,7 @@ func TestRetrieveEvidence(t *testing.T) {
 			ctx := context.WithValue(req.Context(), authorizationPayloadKey, payload)
 			ctx = context.WithValue(ctx, chi.RouteCtxKey, rct)
 			req = req.WithContext(ctx)
-			app.GetEvidenceHandler(rec, req)
+			app.DownloadEvidenceHandler(rec, req)
 			if rec.Code != tt.want {
 				t.Errorf("expected status code %d, got %d", tt.want, rec.Code)
 			}
@@ -274,7 +263,7 @@ func TestRetrieveEvidence(t *testing.T) {
 	}
 
 }
-func TestDeleteEvidence(t *testing.T) {
+func TestDeleteEvidenceHandler(t *testing.T) {
 	tests := []struct {
 		name             string
 		addEvidence      *data.Evidence
@@ -379,7 +368,7 @@ func TestDeleteEvidence(t *testing.T) {
 
 	}
 }
-func TestListingEvidencesFromCaseReturnsCorrectNumberOfEvidences(t *testing.T) {
+func TestListEvidencesHandlerReturnedAllEvidencesFromDBAndOBS(t *testing.T) {
 	// create a new test server
 	app := newTestServer(t)
 	// seed the database with one user and case  for testing
@@ -445,16 +434,12 @@ func TestListingEvidencesFromCaseReturnsCorrectNumberOfEvidences(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
 	}
-	// check for the correct number of evidences
-	if len(got.Evidences) != len(want) {
-		t.Errorf("expected %d evidences, got %d", len(want), len(got.Evidences))
-	}
 	// check for the correct evidences
 	if !cmp.Equal(got.Evidences, want, cmpopts.IgnoreFields(data.Evidence{}, "File")) {
 		t.Errorf(cmp.Diff(want, got.Evidences))
 	}
 }
-func TestListingEvidencesInTheCase(t *testing.T) {
+func TestListEvidencesHandler(t *testing.T) {
 	tests := []struct {
 		name   string
 		caseID string
@@ -501,7 +486,7 @@ func TestListingEvidencesInTheCase(t *testing.T) {
 
 }
 
-func TestAddCommentsToEvidences(t *testing.T) {
+func TestAddCommentHandler(t *testing.T) {
 	tests := []struct {
 		name        string
 		requestBody map[string]interface{}
@@ -509,7 +494,7 @@ func TestAddCommentsToEvidences(t *testing.T) {
 		want        int
 	}{
 		{
-			name: "with valid evidenceID and comment",
+			name: "with valid evidenceID and comment succeeds",
 			requestBody: map[string]interface{}{
 				"text": "something to say",
 			},

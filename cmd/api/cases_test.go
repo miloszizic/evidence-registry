@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"evidence/internal/data"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/miloszizic/der/internal/data"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestCreatingCases(t *testing.T) {
+func TestCreateCaseHandler(t *testing.T) {
 	tests := []struct {
 		name        string
 		requestBody map[string]interface{}
@@ -98,7 +98,7 @@ func TestCreatingCases(t *testing.T) {
 		})
 	}
 }
-func TestRetrievingCaseHandler(t *testing.T) {
+func TestGetCaseHandler(t *testing.T) {
 	tests := []struct {
 		name       string
 		caseID     string
@@ -142,7 +142,7 @@ func TestRetrievingCaseHandler(t *testing.T) {
 	}
 
 }
-func TestCaseRemovedFromFSWhenTheAddingToDBFails(t *testing.T) {
+func TestCreateCaseHandlerRemovedCaseFromOBSWhenTheAddingToDBFails(t *testing.T) {
 	app := newTestServer(t)
 	requestBody := map[string]interface{}{
 		"name": "test",
@@ -242,7 +242,7 @@ func TestBadJSONRequestFailsOnPOST(t *testing.T) {
 		})
 	}
 }
-func TestCaseShouldNotBeCreatedIfUserDoesNotExist(t *testing.T) {
+func TestCreateCaseHandlerDoesNotCreateACaseWithUserThatDoesNotExist(t *testing.T) {
 	app := newTestServer(t)
 	requestBody := map[string]interface{}{
 		"name": "testcase",
@@ -267,7 +267,7 @@ func TestCaseShouldNotBeCreatedIfUserDoesNotExist(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, response.Code)
 	}
 }
-func TestCaseDeletion(t *testing.T) {
+func TestRemoveCaseHandler(t *testing.T) {
 	tests := []struct {
 		name        string
 		caseToAdd   string
@@ -341,7 +341,7 @@ func TestCaseDeletion(t *testing.T) {
 		})
 	}
 }
-func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
+func TestRemoveCaseHandlerFailedForCaseThatDoesNotExistInDB(t *testing.T) {
 	app := newTestServer(t)
 	user := &data.User{
 		Username: "test",
@@ -386,7 +386,8 @@ func TestDeleteCaseThatDoesNotExistInDBFailed(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusNotFound, response.Code)
 	}
 }
-func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
+func TestRemoveCaseHandlerFailedForCaseThatDoesNotExistInOBS(t *testing.T) {
+
 	app := newTestServer(t)
 	user := &data.User{
 		Username: "test",
@@ -432,7 +433,7 @@ func TestDeleteCaseThatDoesNotExistInFSFailed(t *testing.T) {
 	}
 }
 
-func TestListedAllCasesThatExistInBoughtDBAndStorage(t *testing.T) {
+func TestListCasesHandlerListedAllCasesThatExistInDBAndStorage(t *testing.T) {
 	//Creating a test server
 	app := newTestServer(t)
 	user := &data.User{

@@ -32,7 +32,7 @@ func (app *Application) routes() http.Handler {
 		// evidences
 		r.Get("/cases/{caseID}/evidences", app.ListEvidencesHandler)
 		r.Post("/cases/{caseID}/evidences", app.CreateEvidenceHandler)
-		r.Get("/cases/{caseID}/evidences/{evidenceID}", app.GetEvidenceHandler)
+		r.Get("/cases/{caseID}/evidences/{evidenceID}", app.DownloadEvidenceHandler)
 		r.Delete("/cases/{caseID}/evidences/{evidenceID}", app.DeleteEvidenceHandler)
 		r.Post("/cases/{caseID}/evidences/{evidenceID}/comment", app.AddCommentHandler)
 	})

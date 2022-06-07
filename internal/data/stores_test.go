@@ -5,10 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"evidence/internal/data"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/miloszizic/der/internal/data"
 	"github.com/minio/minio-go/v7"
 	"testing"
 )
@@ -78,7 +78,7 @@ func restartTestMinio(minioClient *minio.Client, t *testing.T) {
 
 }
 
-func TestUserCreated(t *testing.T) {
+func TestCreateUserCreatedNewUser(t *testing.T) {
 	tests := []struct {
 		name    string
 		user    *data.UserRequest
@@ -123,7 +123,7 @@ func TestUserCreated(t *testing.T) {
 		})
 	}
 }
-func TestMinioConnectionToTestEnv(t *testing.T) {
+func TestMinioForTestingShouldBeOnline(t *testing.T) {
 	config, err := data.LoadProductionConfig("")
 	if err != nil {
 		t.Errorf("Failed to load config: %s", err)
@@ -138,7 +138,7 @@ func TestMinioConnectionToTestEnv(t *testing.T) {
 		t.Errorf("expexted ostorage to be online, but it was not")
 	}
 }
-func TestCreateCase(t *testing.T) {
+func TestCreateCaseInDBAndOBS(t *testing.T) {
 	tests := []struct {
 		name string
 		cs   *data.Case
@@ -205,7 +205,7 @@ func TestCreateCase(t *testing.T) {
 		})
 	}
 }
-func TestCreateCaseSuccessfully(t *testing.T) {
+func TestCreateCaseSuccessfullyCreatedNewCaseInDBAndOBS(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -282,7 +282,7 @@ func TestCreateCaseFailsIfUserDoesNotExist(t *testing.T) {
 		t.Errorf("Expected error creating case, but got none")
 	}
 }
-func TestExistingCaseRemovedSuccessfully(t *testing.T) {
+func TestRemoveCaseRemovedACaseSuccessfullyFromDBAndOBS(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -315,7 +315,7 @@ func TestExistingCaseRemovedSuccessfully(t *testing.T) {
 		t.Errorf("Expected error getting case, but got none")
 	}
 }
-func TestExistingCaseRemovedFailsIfCaseDoesNotExist(t *testing.T) {
+func TestRemoveCaseFailedForMissingCase(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -325,7 +325,7 @@ func TestExistingCaseRemovedFailsIfCaseDoesNotExist(t *testing.T) {
 		t.Errorf("Expected error removing case, but got none")
 	}
 }
-func TestRemoveCaseThatOnlyExistsInDFails(t *testing.T) {
+func TestRemoveCaseThatOnlyExistsInDBFails(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -356,7 +356,7 @@ func TestRemoveCaseThatOnlyExistsInDFails(t *testing.T) {
 
 }
 
-func TestRetriedAllCasesFromDBandFS(t *testing.T) {
+func TestListCasesRetrievedAllCasesThatExistInDBAAndOBS(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -397,7 +397,7 @@ func TestRetriedAllCasesFromDBandFS(t *testing.T) {
 
 }
 
-func TestCreateEvidenceSuccessfully(t *testing.T) {
+func TestCreateEvidenceSuccessfullyCreatedNewEvidenceInDBAndOBS(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -433,7 +433,7 @@ func TestCreateEvidenceSuccessfully(t *testing.T) {
 		t.Errorf("Error creating evidence: %v", err)
 	}
 }
-func TestCreateEvidenceRemovesFilesIfCreationFails(t *testing.T) {
+func TestCreateEvidenceRemovesEvidenceFromOBSIfAddingToDBFails(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -465,8 +465,8 @@ func TestCreateEvidenceRemovesFilesIfCreationFails(t *testing.T) {
 	}
 	err = stores.CreateEvidence(ev, cs)
 	var veer *data.Error
-	if !errors.As(err, &veer) || veer.Error() != "stores: OBStore.RemoveEvidence" {
-		t.Errorf("Expected exact err message, but got %v", err)
+	if !errors.As(err, &veer) || veer.Code() != data.ErrCodeUnknown {
+		t.Errorf("Expected error code %v, but got %v", data.ErrCodeUnknown, err)
 	}
 }
 func TestCreateEvidenceFailsIfEvidenceExistsInDB(t *testing.T) {
@@ -505,10 +505,17 @@ func TestCreateEvidenceFailsIfEvidenceExistsInDB(t *testing.T) {
 		t.Errorf("Error creating evidence: %v", err)
 	}
 	err = stores.CreateEvidence(ev, cs)
-	var veer *data.Error
-	if !errors.As(err, &veer) || veer.Code() != data.ErrCodeExists {
-		t.Errorf("Expected code : %v, but got %v", data.ErrCodeExists, err)
+	if err == nil {
+		t.Errorf("Expected error creating evidence, but got none")
 	}
+	exists, err := stores.OBStore.EvidenceExists(cs.Name, ev.Name)
+	if err != nil {
+		t.Errorf("Error checking evidence exists: %v", err)
+	}
+	if exists {
+		t.Errorf("Expected evidence to not exist, but it does")
+	}
+
 }
 func TestCreateEvidenceFailsIfEvidenceExistsInOBS(t *testing.T) {
 	stores, err := GetTestStores(t)
@@ -551,7 +558,7 @@ func TestCreateEvidenceFailsIfEvidenceExistsInOBS(t *testing.T) {
 		t.Errorf("Expected code : %v, but got %v", data.ErrCodeExists, err)
 	}
 }
-func TestRetrieveEvidenceByID(t *testing.T) {
+func TestGetEvidenceByID(t *testing.T) {
 	tests := []struct {
 		name    string
 		evID    int64
@@ -622,7 +629,7 @@ func TestDownloadEvidence(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name: "successful download evidence",
+			name: "successfully downloaded evidence",
 			evidence: &data.Evidence{
 				ID:     1,
 				CaseID: 1,
@@ -640,7 +647,7 @@ func TestDownloadEvidence(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "failed becouse case doesn't exist",
+			name: "failed because case doesn't exist",
 			evidence: &data.Evidence{
 				ID:     1,
 				CaseID: 2, // Case doesn't exist
@@ -700,7 +707,7 @@ func TestDeleteEvidence(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name: "successful delete evidence",
+			name: "successfully deleted evidence",
 			evidence: &data.Evidence{
 				ID:     1,
 				CaseID: 1,
@@ -718,7 +725,7 @@ func TestDeleteEvidence(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "failed becouse case doesn't exist",
+			name: "failed because case doesn't exist",
 			evidence: &data.Evidence{
 				ID:     1,
 				CaseID: 2, // Case doesn't exist
@@ -772,7 +779,7 @@ func TestDeleteEvidence(t *testing.T) {
 	}
 }
 
-func TestListingAllEvidencesFromTheCase(t *testing.T) {
+func TestListEvidencesThatExistInDBAAndOBSSuccessfullyRetried(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)
@@ -835,7 +842,7 @@ func TestListingAllEvidencesFromTheCase(t *testing.T) {
 		t.Errorf("wanted %v evidences, but got %v", want, len(got))
 	}
 }
-func TestAddCommentsToEvidences(t *testing.T) {
+func TestAddEvidenceCommentAddedSuccessfully(t *testing.T) {
 	stores, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error getting test stores: %v", err)

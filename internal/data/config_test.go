@@ -1,16 +1,16 @@
 package data_test
 
 import (
-	"evidence/internal/data"
 	"flag"
 	"github.com/google/go-cmp/cmp"
+	"github.com/miloszizic/der/internal/data"
 	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
 )
 
-func TestUnmarshalJSON(t *testing.T) {
+func TestUnmarshalJSONWasSuccessfully(t *testing.T) {
 	dat, err := ioutil.ReadFile("testdata/.config.json")
 	if err != nil {
 		t.Errorf("failed to read test data: %v", err)
@@ -42,7 +42,7 @@ func TestUnmarshalJSON(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestLoadProductionConfig(t *testing.T) {
+func TestLoadProductionConfigWasSuccessful(t *testing.T) {
 	want := data.Config{
 		Port:                3000,
 		Env:                 "dev",
@@ -69,21 +69,21 @@ func TestLoadProductionConfig(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestLoadingFlags(t *testing.T) {
+func TestParsingFlags(t *testing.T) {
 	var tests = []struct {
 		name string
 		args []string
 		conf *data.ConfigFlag // config flag
 	}{
 		{
-			name: "test data",
+			name: "with test JSON data successful",
 			args: []string{"-config", "testdata/.config.json"},
 			conf: &data.ConfigFlag{
 				Path: "testdata/.config.json",
 			},
 		},
 		{
-			name: "no config",
+			name: "that are not specified returns default config successful",
 			args: []string{},
 			conf: &data.ConfigFlag{
 				Path: "",

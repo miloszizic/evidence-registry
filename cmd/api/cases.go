@@ -1,8 +1,9 @@
 package api
 
 import (
-	"evidence/internal/data"
+	"github.com/miloszizic/der/internal/data"
 	"net/http"
+	"strings"
 )
 
 // caseRequest is the request body for the case API
@@ -23,7 +24,7 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 		app.respondError(w, r, err)
 		return
 	}
-	app.respondCaseCreated(w, r)
+	app.respond(w, r, http.StatusCreated, envelope{"Case": "case successfully created"})
 }
 
 // RemoveCaseHandler removes a case from the database and OBStore
@@ -39,7 +40,7 @@ func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request
 		app.respondError(w, r, err)
 		return
 	}
-	app.respondCaseDeleted(w, r)
+	app.respond(w, r, http.StatusOK, envelope{"Case": "case successfully deleted"})
 }
 func (app *Application) GetCaseHandler(w http.ResponseWriter, r *http.Request) {
 	cs, err := app.caseParser(r)
@@ -48,7 +49,7 @@ func (app *Application) GetCaseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// respond with case
-	app.respondCaseRetrieved(w, r, cs)
+	app.respond(w, r, http.StatusOK, envelope{"Case": cs})
 }
 
 // ListCasesHandler returns a list of cases that exist in bought database and storage
@@ -60,7 +61,7 @@ func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// respond with cases
-	app.respondCasesList(w, r, cases)
+	app.respond(w, r, http.StatusOK, envelope{"Cases": cases})
 }
 
 // requestParser takes a request and returns a user and the case name
@@ -75,41 +76,19 @@ func (app *Application) requestParser(r *http.Request) (*data.User, string, erro
 	var req caseRequest
 	err = app.readJSON(r, &req)
 	if err != nil {
-		return nil, "", err
+		switch {
+		case strings.HasPrefix(err.Error(), "body"):
+			return nil, "", data.NewErrorf(data.ErrCodeInvalid, "readJSON")
+		}
+		return nil, "", data.WrapErrorf(err, data.ErrCodeUnknown, "requestParser")
 	}
 	return user, req.Name, nil
 }
 
-// respondCaseCreated writes a JSON response with the case created
-func (app *Application) respondCaseRetrieved(w http.ResponseWriter, r *http.Request, cs *data.Case) {
-	err := app.writeJSON(w, http.StatusOK, envelope{"case": cs}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
-// respondCaseCreated with status for created case
-func (app *Application) respondCaseCreated(w http.ResponseWriter, r *http.Request) {
-	err := app.writeJSON(w, http.StatusCreated, envelope{"Case": "case successfully created"}, nil)
+func (app *Application) respond(w http.ResponseWriter, r *http.Request, status int, data envelope) {
+	err := app.writeJSON(w, status, data, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
-	}
-}
-
-// respondCaseDeleted responds with status for deleted case
-func (app *Application) respondCaseDeleted(w http.ResponseWriter, r *http.Request) {
-	err := app.writeJSON(w, http.StatusOK, envelope{"Case": "case successfully deleted"}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-}
-
-// respondCasesList responds with a list of cases in JSON
-func (app *Application) respondCasesList(w http.ResponseWriter, r *http.Request, cases []data.Case) {
-	err := app.writeJSON(w, http.StatusOK, envelope{"Cases": cases}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
 	}
 }

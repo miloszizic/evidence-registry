@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 	"errors"
-	"evidence/internal/data"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/miloszizic/der/internal/data"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"

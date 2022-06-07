@@ -3,9 +3,8 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"evidence/internal/data"
-	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/miloszizic/der/internal/data"
 	"io"
 	"net/http"
 	"strconv"
@@ -79,38 +78,38 @@ func (app *Application) readJSON(r *http.Request, dst interface{}) error {
 
 		switch {
 		case errors.As(err, &syntaxError):
-			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
+			return data.NewErrorf(data.ErrCodeInvalid, "body contains badly-formed JSON (at character %d)", syntaxError.Offset)
 
 		case errors.Is(err, io.ErrUnexpectedEOF):
-			return errors.New("body contains badly-formed JSON")
+			return data.NewErrorf(data.ErrCodeInvalid, "body contains badly-formed JSON")
 
 		case errors.As(err, &unmarshalTypeError):
 			if unmarshalTypeError.Field != "" {
-				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
+				return data.NewErrorf(data.ErrCodeInvalid, "body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
 			}
-			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
+			return data.NewErrorf(data.ErrCodeInvalid, "body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
 
 		case errors.Is(err, io.EOF):
-			return errors.New("body must not be empty")
+			return data.NewErrorf(data.ErrCodeInvalid, "body must not be empty")
 
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
 			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-			return fmt.Errorf("body contains unknown key %s", fieldName)
+			return data.NewErrorf(data.ErrCodeInvalid, "body contains unknown key %s", fieldName)
 
 		case err.Error() == "http: request body too large":
-			return fmt.Errorf("body must not be larger than %d bytes", 1_048_576)
+			return data.NewErrorf(data.ErrCodeInvalid, "body must not be larger than %d bytes", 1_048_576)
 
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
 
 		default:
-			return err
+			return data.WrapErrorf(err, data.ErrCodeUnknown, "unexpected error")
 		}
 	}
 
 	err = dec.Decode(&struct{}{})
 	if err != io.EOF {
-		return errors.New("body must only contain a single JSON value")
+		return data.NewErrorf(data.ErrCodeInvalid, "body must only contain a single JSON value")
 	}
 
 	return nil
@@ -119,15 +118,7 @@ func (app *Application) readJSON(r *http.Request, dst interface{}) error {
 // respondError writes an error response to all kinds of errors.
 func (app *Application) respondError(w http.ResponseWriter, r *http.Request, err error) {
 	var verr *data.Error
-	if !errors.As(err, &verr) {
-		switch {
-		case strings.HasPrefix(err.Error(), "body"):
-			app.badRequestResponse(w, r, err)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	} else {
+	if errors.As(err, &verr) {
 		switch verr.Code() {
 		case data.ErrCodeNotFound:
 			app.notFoundResponse(w, r)
@@ -144,36 +135,6 @@ func (app *Application) respondError(w http.ResponseWriter, r *http.Request, err
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
-		return
 	}
-	//switch {
-	////api errors
-	//case errors.Is(err, ErrUserNotFound):
-	//	app.unauthorizedUser(w, r)
-	//case errors.Is(err, ErrInvalidCredentials):
-	//	app.invalidCredentialsResponse(w, r)
-	//case errors.Is(err, ErrInvalidID):
-	//	app.badRequestResponse(w, r, err)
-	//case errors.Is(err, ErrNoFileFound):
-	//	app.badRequestResponse(w, r, err)
-	//case errors.Is(err, ErrEvidenceNotFound):
-	//	app.notFoundResponse(w, r)
-	//// data store errors
-	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeNotFound:
-	//	app.notFoundResponse(w, r)
-	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeConflict:
-	//	app.alreadyExists(w, r)
-	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeInvalid:
-	//	app.badRequestResponse(w, r, err)
-	//case errors.Is(err, verr) && verr.Code() == data.ErrCodeExists:
-	//	app.alreadyExists(w, r)
-	//	// minio errors
-	//case err.Error() == "The specified bucket does not exist":
-	//	app.invalidCaseName(w, r)
-	////JSON errors
-	//case strings.HasPrefix(err.Error(), "body"):
-	//	app.badRequestResponse(w, r, err)
-	//default:
-	//	app.serverErrorResponse(w, r, err)
-	//}
+	app.serverErrorResponse(w, r, err)
 }

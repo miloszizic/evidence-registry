@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 	"errors"
-	"evidence/internal/data"
 	"flag"
 	"fmt"
+	"github.com/miloszizic/der/internal/data"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"net/http"
@@ -53,7 +53,7 @@ func Run() {
 }
 
 func NewApplication(config data.Config) (*Application, error) {
-	logger := InitLogger()
+	logger := initLogger()
 	defer logger.Sync()
 	tokenMaker, err := NewPasetoMaker(config.SymmetricKey)
 	if err != nil {
@@ -77,7 +77,6 @@ func NewApplication(config data.Config) (*Application, error) {
 		tokenMaker: tokenMaker,
 		config:     config,
 		stores:     data.NewStores(db, minioClient),
-		//minioConfig:      minioClient,
 	}
 	//add default user
 	user := &data.User{
@@ -144,7 +143,7 @@ func (app *Application) Serve() error {
 	return nil
 }
 
-func InitLogger() *zap.SugaredLogger {
+func initLogger() *zap.SugaredLogger {
 	writeSyncer := getLogWriter()
 	encoder := getEncoder()
 	core := zapcore.NewTee(

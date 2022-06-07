@@ -25,10 +25,10 @@ func NewStores(db *sql.DB, client *minio.Client) Stores {
 func (s *Stores) CreateCase(user *User, name string) error {
 	exist, err := s.DBStore.CaseExists(name)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.CaseExists")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.CaseExists")
 	}
 	if exist {
-		return NewErrorf(ErrCodeExists, "stores: case already exists")
+		return NewErrorf(ErrCodeExists, "CreateCase: case already exists")
 	}
 	// create case struct
 	cs := &Case{
@@ -39,11 +39,11 @@ func (s *Stores) CreateCase(user *User, name string) error {
 	if err != nil {
 		switch {
 		case err.Error() == "Bucket name contains invalid characters":
-			return NewErrorf(ErrCodeInvalid, "stores: invalid case name")
+			return NewErrorf(ErrCodeInvalid, "CreateCase: invalid case name")
 		case err.Error() == "Bucket name cannot be empty":
-			return NewErrorf(ErrCodeInvalid, "stores: invalid case name")
+			return NewErrorf(ErrCodeInvalid, "CreateCase: invalid case name")
 		default:
-			return WrapErrorf(err, ErrCodeUnknown, "stores: OBStore.CreateCase")
+			return WrapErrorf(err, ErrCodeUnknown, "OBStore.CreateCase")
 		}
 	}
 	// create case in database
@@ -51,9 +51,9 @@ func (s *Stores) CreateCase(user *User, name string) error {
 	if err != nil {
 		rErr := s.OBStore.RemoveCase(name)
 		if rErr != nil {
-			return WrapErrorf(rErr, ErrCodeUnknown, "stores: OBStore.RemoveCase")
+			return WrapErrorf(rErr, ErrCodeUnknown, "OBStore.RemoveCase")
 		}
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.AddCase")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.AddCase")
 	}
 	return nil
 }
@@ -61,43 +61,43 @@ func (s *Stores) GetCaseByID(id int64) (*Case, error) {
 	cs, err := s.DBStore.GetCaseByID(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NewErrorf(ErrCodeNotFound, "stores: case not found ")
+			return nil, NewErrorf(ErrCodeNotFound, "GetCaseByID: case not found ")
 		}
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetCaseByID")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "DBStore.GetCaseByID")
 	}
 	return cs, nil
 }
 func (s *Stores) RemoveCase(name string) error {
 	// check if case exists in the database
 	exist, err := s.DBStore.CaseExists(name)
-	if !exist {
-		return NewErrorf(ErrCodeNotFound, "stores: case not found")
-	}
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.CaseExists")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.CaseExists")
+	}
+	if !exist {
+		return NewErrorf(ErrCodeNotFound, "RemoveCase: case not found")
 	}
 	// get the case
 	cs, err := s.DBStore.GetCaseByName(name)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetCaseByName")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.GetCaseByName")
 	}
 	// check if case exists in the OBStore
 	exist, err = s.OBStore.CaseExists(cs.Name)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: OBStore.CaseExists")
+		return WrapErrorf(err, ErrCodeUnknown, "OBStore.CaseExists")
 	}
 	if !exist {
-		return NewErrorf(ErrCodeNotFound, "stores: case not found in OBStore")
+		return NewErrorf(ErrCodeNotFound, "RemoveCase: case not found in OBStore")
 	}
 	// remove case from OBStore
 	err = s.OBStore.RemoveCase(cs.Name)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: OBStore.RemoveCase")
+		return WrapErrorf(err, ErrCodeUnknown, "OBStore.RemoveCase")
 	}
 	// remove the case in the database
 	err = s.DBStore.RemoveCase(cs)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: DBStore.RemoveCase")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.RemoveCase")
 	}
 	return nil
 }
@@ -105,12 +105,12 @@ func (s *Stores) ListCases() ([]Case, error) {
 	// get all cases from the database
 	casesDB, err := s.DBStore.ListCases()
 	if err != nil {
-		return nil, NewErrorf(ErrCodeUnknown, "stores: DBStore.ListCases()")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "DBStore.ListCases")
 	}
 	//get all cases in the OBStore
 	casesFS, err := s.OBStore.ListCases()
 	if err != nil {
-		return nil, NewErrorf(ErrCodeUnknown, "stores: OBStore.ListCases()")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "OBStore.ListCases")
 	}
 	// remove cases that are not in the database
 	var List []Case
@@ -129,18 +129,18 @@ func (s *Stores) CreateEvidence(ev *Evidence, cs *Case) error {
 	// check if the evidence already exists in the database
 	exist, err := s.DBStore.EvidenceExists(ev)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: DBStore.EvidenceExists")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.EvidenceExists")
 	}
 	if exist {
-		return NewErrorf(ErrCodeExists, "stores: evidence already exists in DB")
+		return NewErrorf(ErrCodeExists, "CreateEvidence: evidence already exists in DB")
 	}
 	//check if the evidence already exists in the OBStore
 	exist, err = s.OBStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: OBStore.EvidenceExists")
+		return WrapErrorf(err, ErrCodeUnknown, "OBStore.EvidenceExists")
 	}
 	if exist {
-		return NewErrorf(ErrCodeExists, "stores: evidence already exists in OBStore")
+		return NewErrorf(ErrCodeExists, "CreateEvidence: evidence already exists in OBStore")
 	}
 	// create the evidence in OBStore and generate hash
 	hash, err := s.OBStore.CreateEvidence(ev, cs.Name, ev.File)
@@ -153,9 +153,9 @@ func (s *Stores) CreateEvidence(ev *Evidence, cs *Case) error {
 	if err != nil {
 		errR := s.OBStore.RemoveEvidence(ev, cs.Name)
 		if errR != nil {
-			return NewErrorf(ErrCodeUnknown, "stores: OBStore.RemoveEvidence")
+			return WrapErrorf(errR, ErrCodeUnknown, "OBStore.RemoveEvidence")
 		}
-		return NewErrorf(ErrCodeUnknown, "stores: OBStore.RemoveEvidence")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.CreateEvidence")
 	}
 	ev.ID = id
 	return nil
@@ -164,9 +164,9 @@ func (s *Stores) GetEvidenceByID(id int64, csID int64) (*Evidence, error) {
 	ev, err := s.DBStore.GetEvidenceByID(id, csID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NewErrorf(ErrCodeNotFound, "stores: evidence not found in DB")
+			return nil, NewErrorf(ErrCodeNotFound, "GetEvidenceByID: evidence not found in DB")
 		}
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetEvidenceByID")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "GetEvidenceByID")
 	}
 	return ev, nil
 }
@@ -175,21 +175,21 @@ func (s *Stores) DownloadEvidence(ev *Evidence) (*io.ReadCloser, error) {
 	cs, err := s.DBStore.GetCaseByID(ev.CaseID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NewErrorf(ErrCodeNotFound, "stores: case not found in DB")
+			return nil, NewErrorf(ErrCodeNotFound, "DownloadEvidence: evidence not found in DB")
 		}
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetCaseByID")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "DownloadEvidence")
 	}
 	// check if the evidence exists in the OBStore
 	exist, err := s.OBStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
-		return nil, NewErrorf(ErrCodeUnknown, "stores: OBStore.EvidenceExists")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "OBStore.EvidenceExists")
 	}
 	if !exist {
-		return nil, NewErrorf(ErrCodeNotFound, "stores: evidence not found in OBStore")
+		return nil, NewErrorf(ErrCodeNotFound, "DownloadEvidence: evidence not found in OBStore")
 	}
 	evidence, err := s.OBStore.GetEvidence(cs.Name, ev.Name)
 	if err != nil {
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: OBStore.GetEvidence")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "OBStore.GetEvidence")
 	}
 	return &evidence, nil
 }
@@ -199,35 +199,33 @@ func (s *Stores) DeleteEvidence(ev *Evidence) error {
 	// check if the evidence exists in the database
 	exist, err := s.DBStore.EvidenceExists(ev)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: DBStore.EvidenceExists")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.EvidenceExists")
 	}
 	if !exist {
-		return NewErrorf(ErrCodeNotFound, "stores: evidence not found in DB")
+		return NewErrorf(ErrCodeNotFound, "DeleteEvidence: evidence not found in DB")
 	}
-	// delete evidence from the database
-	err = s.DBStore.RemoveEvidence(ev)
-	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.RemoveEvidence")
-	}
-	// delete evidence from the OBStore
+	// get case from DB
 	cs, err := s.DBStore.GetCaseByID(ev.CaseID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return NewErrorf(ErrCodeNotFound, "stores: case not found in DB")
-		}
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetCaseByID ")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.GetCaseByID ")
 	}
 	// check if the evidence exists in the OBStore
 	exist, err = s.OBStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
-		return NewErrorf(ErrCodeUnknown, "stores: OBStore.EvidenceExists")
+		return WrapErrorf(err, ErrCodeUnknown, "OBStore.EvidenceExists")
 	}
 	if !exist {
-		return NewErrorf(ErrCodeNotFound, "stores: Evidence not found in OBStore")
+		return NewErrorf(ErrCodeNotFound, "DeleteEvidence: evidence not found in OBStore")
 	}
+	// delete evidence from the database
+	err = s.DBStore.RemoveEvidence(ev)
+	if err != nil {
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.RemoveEvidence")
+	}
+	// delete evidence from the OBStore
 	err = s.OBStore.RemoveEvidence(ev, cs.Name)
 	if err != nil {
-		return err
+		return WrapErrorf(err, ErrCodeUnknown, "OBStore.RemoveEvidence")
 	}
 	return nil
 }
@@ -238,12 +236,12 @@ func (s *Stores) ListEvidences(cs *Case) ([]Evidence, error) {
 	// list evidences in the database
 	evidencesDB, err := s.DBStore.GetEvidenceByCaseID(cs.ID)
 	if err != nil {
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.GetEvidenceByCaseID")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "DBStore.GetEvidenceByCaseID")
 	}
 	// list evidences in OBStore
 	evidencesFS, err := s.OBStore.ListEvidences(cs.Name)
 	if err != nil {
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: OBStore.ListEvidences")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "OBStore.ListEvidences")
 	}
 	// filter out evidences that are not in the OBStore
 	var result []Evidence
@@ -269,12 +267,12 @@ func (s *Stores) CreateUser(request *UserRequest) error {
 	}
 	err := usr.Password.Set(request.Password)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: Password.Set")
+		return WrapErrorf(err, ErrCodeUnknown, "Password.Set")
 	}
 	// create usr
 	err = s.User.Add(usr)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: User.Add")
+		return WrapErrorf(err, ErrCodeUnknown, "User.Add")
 	}
 	return nil
 }
@@ -283,7 +281,7 @@ func (s *Stores) CreateUser(request *UserRequest) error {
 func (s *Stores) AddEvidenceComment(comment *Comment) error {
 	err := s.DBStore.AddComment(comment)
 	if err != nil {
-		return WrapErrorf(err, ErrCodeUnknown, "stores: DBStore.AddComment")
+		return WrapErrorf(err, ErrCodeUnknown, "DBStore.AddComment")
 	}
 	return nil
 }
@@ -292,7 +290,7 @@ func (s *Stores) AddEvidenceComment(comment *Comment) error {
 func FromPostgresDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: sql.Open")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "sql.Open")
 	}
 	return db, nil
 }
@@ -303,7 +301,7 @@ func FromMinio(endpoint, accessKeyID, secretAccessKey string) (*minio.Client, er
 		Creds: credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 	})
 	if err != nil {
-		return nil, WrapErrorf(err, ErrCodeUnknown, "stores: minio.New")
+		return nil, WrapErrorf(err, ErrCodeUnknown, "minio.New")
 	}
 	return minioClient, nil
 }

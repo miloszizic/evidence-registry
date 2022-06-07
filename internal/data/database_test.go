@@ -5,7 +5,7 @@ package data_test
 import (
 	"database/sql"
 	"errors"
-	"evidence/internal/data"
+	"github.com/miloszizic/der/internal/data"
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
+func TestAddCaseCreatedCaseInDBSuccessfully(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -49,7 +49,7 @@ func TestNewCaseCreatedSuccessfullyInDB(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestCheckForCaseShouldReturnTrueIfCaseExists(t *testing.T) {
+func TestCaseExistsReturnedTrueForExistingCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -81,7 +81,7 @@ func TestCheckForCaseShouldReturnTrueIfCaseExists(t *testing.T) {
 		t.Errorf("Expected: %v, got: %v", true, got)
 	}
 }
-func TestCaseCreation(t *testing.T) {
+func TestAddCase(t *testing.T) {
 	testCases := []struct {
 		name     string
 		caseData *data.Case
@@ -90,7 +90,7 @@ func TestCaseCreation(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name: "with valid database",
+			name: "with valid case name successful",
 			caseData: &data.Case{
 				Name: "TestCase",
 				Tags: []string{"tag1", "tag2"},
@@ -103,7 +103,7 @@ func TestCaseCreation(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "with invalid database",
+			name: "with invalid case name failed",
 			caseData: &data.Case{
 				Name: "",
 				Tags: []string{"tag1", "tag2"},
@@ -116,7 +116,7 @@ func TestCaseCreation(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "with invalid user",
+			name: "with invalid user failed",
 			caseData: &data.Case{
 				Name: "TestCase",
 			},
@@ -149,7 +149,7 @@ func TestCaseCreation(t *testing.T) {
 	}
 }
 
-func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
+func TestGetCaseByIDReturnedCorrectCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -186,7 +186,7 @@ func TestSearchingForCaseByIDReturnsCorrectCase(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestSearchingForCaseByInvalidIDReturnsError(t *testing.T) {
+func TestGetCaseByIDReturnedFalseForMissingCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -196,7 +196,7 @@ func TestSearchingForCaseByInvalidIDReturnsError(t *testing.T) {
 		t.Errorf("Expected error, got nil")
 	}
 }
-func TestExistShouldReturnsFailsWhenCaseDoesNotExist(t *testing.T) {
+func TestCaseExistsReturnedFalseForMissingCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -210,7 +210,7 @@ func TestExistShouldReturnsFailsWhenCaseDoesNotExist(t *testing.T) {
 	}
 
 }
-func TestCaseFoundByNameWasSuccessfullyDeletedInDB(t *testing.T) {
+func TestRemoveCaseRemovedCaseFromDB(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -244,7 +244,7 @@ func TestCaseFoundByNameWasSuccessfullyDeletedInDB(t *testing.T) {
 		t.Errorf("Expected error, got nil")
 	}
 }
-func TestSearchingForNonExistentCaseNameReturnsError(t *testing.T) {
+func TestGetCaseByNameReturnedErrorForMissingCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -254,7 +254,7 @@ func TestSearchingForNonExistentCaseNameReturnsError(t *testing.T) {
 		t.Errorf("Expected error, got nil")
 	}
 }
-func TestReturnedAllCasesForSpecificUser(t *testing.T) {
+func TestGetCaseByUserIDReturnedAllCasesForSpecificUser(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -292,7 +292,7 @@ func TestReturnedAllCasesForSpecificUser(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestRetrieveAllCasesInDB(t *testing.T) {
+func TestListCasesListedAllCasesInDB(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -330,7 +330,7 @@ func TestRetrieveAllCasesInDB(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestRetireCasesByTags(t *testing.T) {
+func TestFindCaseByTagsFoundCorrectCases(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("Error creating case service: %v", err)
@@ -366,7 +366,7 @@ func TestRetireCasesByTags(t *testing.T) {
 	}
 
 }
-func TestRetrieveAllEvidencesFromCase(t *testing.T) {
+func TestGetEvidenceByCaseIDReturnedAllEvidenceForSpecificCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -411,7 +411,7 @@ func TestRetrieveAllEvidencesFromCase(t *testing.T) {
 	}
 
 }
-func TestCreateOneEvidenceInCase(t *testing.T) {
+func TestCreateEvidenceCreatedNewEvidence(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -425,7 +425,10 @@ func TestCreateOneEvidenceInCase(t *testing.T) {
 		ID:       1,
 		Username: "test",
 	}
-	user.Password.Set("test")
+	err = user.Password.Set("test")
+	if err != nil {
+		t.Errorf("Failed to set password: %v", err)
+	}
 	err = store.User.Add(user)
 	if err != nil {
 		t.Errorf("failed to add user: %v", err)
@@ -454,7 +457,7 @@ func TestCreateOneEvidenceInCase(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestDeleteEvidenceByNameFromTheCase(t *testing.T) {
+func TestRemoveEvidenceDeletedAEvidenceFromTheCase(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -501,7 +504,7 @@ func TestDeleteEvidenceByNameFromTheCase(t *testing.T) {
 		t.Errorf("Expected ErrNoRows, got %v", err)
 	}
 }
-func TestFindingTheEvidenceByItsName(t *testing.T) {
+func TestGetEvidenceByNameRetrievedCorrectEvidence(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -550,7 +553,7 @@ func TestFindingTheEvidenceByItsName(t *testing.T) {
 		t.Errorf(cmp.Diff(want, got))
 	}
 }
-func TestRetrievingNonExistingEvidenceByNameFailed(t *testing.T) {
+func TestGetEvidenceByNameReturnedErrorForMissingEvidence(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -595,7 +598,7 @@ func TestRetrievingNonExistingEvidenceByNameFailed(t *testing.T) {
 	}
 
 }
-func TestExistShouldReturnFalseForNonExistingEvidence(t *testing.T) {
+func TestEvidenceExistsReturnedFalseForMissingEvidence(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)
@@ -611,7 +614,7 @@ func TestExistShouldReturnFalseForNonExistingEvidence(t *testing.T) {
 		t.Errorf("Expected false, got %v", got)
 	}
 }
-func TestAddingCommentToTheEvidences(t *testing.T) {
+func TestAddCommentAddedCommentToTheEvidence(t *testing.T) {
 	store, err := GetTestStores(t)
 	if err != nil {
 		t.Errorf("failed to get store: %v", err)

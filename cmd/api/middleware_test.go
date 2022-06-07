@@ -1,10 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/miloszizic/der/internal/data"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -181,6 +185,89 @@ func TestMiddlewarePermissions(t *testing.T) {
 			app.MiddlewarePermissionChecker(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			})).ServeHTTP(recorder, tc.request())
 			tc.checkResponse(t, recorder)
+		})
+	}
+}
+func TestMiddlewarePermissionsAllowsOnlyAdminUsers(t *testing.T) {
+	app := newTestServer(t)
+	// seed the database with one user and a case
+	seedForHandlerTesting(t, app)
+	user := &data.User{
+		Username: "testuser",
+		Role:     "user",
+	}
+	err := user.Password.Set("testpassword")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = app.stores.User.Add(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := &Payload{
+		Username: "testuser",
+	}
+	request := httptest.NewRequest("GET", "/", nil)
+	ctx := context.WithValue(request.Context(), authorizationPayloadKey, payload)
+	reqWithPayload := request.WithContext(ctx)
+	recorder := httptest.NewRecorder()
+	app.MiddlewarePermissionChecker(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	})).ServeHTTP(recorder, reqWithPayload)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, recorder.Code)
+	}
+}
+func TestLogger(t *testing.T) {
+	tests := []struct {
+		name     string
+		route    string
+		handler  http.HandlerFunc
+		expected string
+	}{
+		{
+			name:  "should log request as OK",
+			route: "/",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("hello"))
+			}),
+			expected: "OK",
+		},
+		{
+			name:  "should log request as server error",
+			route: "/",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			}),
+			expected: "Server Error",
+		}, {
+			name:  "should log request as client error",
+			route: "/",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+			}),
+			expected: "Client Error",
+		}, {
+			name:  "should log request as redirect",
+			route: "/",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/", http.StatusFound)
+			}),
+			expected: "Redirect",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger := testLogger(&buf)
+			r := chi.NewRouter()
+			r.Use(Logger(logger))
+			r.Get(tt.route, tt.handler)
+			request := httptest.NewRequest("GET", tt.route, nil)
+			recorder := httptest.NewRecorder()
+			r.ServeHTTP(recorder, request)
+			if !strings.Contains(buf.String(), tt.expected) {
+				t.Fatalf("expected to log request, got %s", buf.String())
+			}
 		})
 	}
 }

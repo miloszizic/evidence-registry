@@ -23,7 +23,7 @@ type password struct {
 // Set takes a plaintext password and hashes it.
 func (p *password) Set(plaintextPassword string) error {
 	if plaintextPassword == "" {
-		return NewErrorf(ErrCodeInvalid, "password cannot be empty")
+		return NewErrorf(ErrCodeInvalid, "set: password cannot be empty")
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
 	if err != nil {
@@ -84,7 +84,7 @@ func (u *UserDB) GetByID(id int64) (*User, error) {
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE id = $1", id).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, WrapErrorf(err, ErrCodeNotFound, "user not found")
+			return nil, NewErrorf(ErrCodeNotFound, "user not found")
 		}
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (u *UserDB) GetByUsername(username string) (*User, error) {
 	err := u.DB.QueryRow("SELECT id, username, password, role FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Password.hash, &user.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, WrapErrorf(err, ErrCodeNotFound, "user not found")
+			return nil, NewErrorf(ErrCodeNotFound, "user not found")
 		}
 		return nil, err
 	}

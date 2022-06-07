@@ -3,7 +3,7 @@ package data_test
 
 import (
 	"errors"
-	"evidence/internal/data"
+	"github.com/miloszizic/der/internal/data"
 	"testing"
 
 	_ "github.com/lib/pq"

@@ -38,7 +38,7 @@ type FS struct {
 func (f *FS) CreateCase(cs *Case) error {
 	exists, err := f.Minio.BucketExists(context.Background(), cs.Name)
 	if exists {
-		return NewErrorf(ErrCodeConflict, "caseFS: case already exists")
+		return NewErrorf(ErrCodeConflict, "case already exists")
 	}
 	if err != nil {
 		return err
@@ -84,10 +84,10 @@ func (f *FS) ListCases() ([]Case, error) {
 func (f *FS) CreateEvidence(evidence *Evidence, caseName string, file io.Reader) (string, error) {
 	// check if caseName contains forward slash
 	if strings.Contains(evidence.Name, "/") || strings.Contains(evidence.Name, " ") {
-		return "", NewErrorf(ErrCodeInvalid, "OBStore: evidence name cannot contain forward slash or space")
+		return "", NewErrorf(ErrCodeInvalid, "evidence name cannot contain forward slash or space")
 	}
 	if file == nil {
-		return "", NewErrorf(ErrCodeInvalid, "FS.CreateEvidence: file cannot be nil")
+		return "", NewErrorf(ErrCodeInvalid, "file can't be empty")
 	}
 	h := sha256.New()
 	putFile := io.TeeReader(file, h)

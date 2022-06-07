@@ -5,12 +5,27 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"evidence/internal/data"
+	"github.com/miloszizic/der/internal/data"
 	"github.com/minio/minio-go/v7"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+// zap testing logger
+func testLogger(console io.Writer) *zap.SugaredLogger {
+	config := zap.NewDevelopmentEncoderConfig()
+	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	testWriter := zapcore.AddSync(console)
+	encoder := zapcore.NewConsoleEncoder(config)
+	core := zapcore.NewCore(encoder, testWriter, zapcore.InfoLevel)
+	logger := zap.New(core, zap.AddCaller())
+	sugarLogger := logger.Sugar()
+	return sugarLogger
+}
 
 func newTestServer(t *testing.T) *Application {
 	//Making test application
@@ -18,8 +33,7 @@ func newTestServer(t *testing.T) *Application {
 	if err != nil {
 		t.Errorf("Error loading config: %v", err)
 	}
-	//logger := jsonlog.New(jsonlog.LevelInfo)
-	logger := InitLogger()
+	logger := testLogger(io.Discard)
 	tokenMaker, err := NewPasetoMaker(config.SymmetricKey)
 	if err != nil {
 		t.Errorf("failed to create tokenMaker maker: %v", err)
@@ -44,10 +58,11 @@ func newTestServer(t *testing.T) *Application {
 		tokenMaker: tokenMaker,
 		config:     config,
 		stores:     data.NewStores(db, minioClient),
-		//minio:      minioClient,
 	}
 	return app
+
 }
+
 func resetTestPostgresDB(sqlDB *sql.DB, t *testing.T) {
 	if _, err := sqlDB.Exec("TRUNCATE TABLE users,user_cases,evidences,cases,comments CASCADE;"); err != nil {
 		t.Errorf("failed to truncate tables: %v", err)
@@ -101,7 +116,7 @@ func TestPingHandlerReturnedAPong(t *testing.T) {
 	}
 
 }
-func TestUserLogin(t *testing.T) {
+func TestLogin(t *testing.T) {
 	tests := []struct {
 		name           string
 		requestBody    map[string]interface{}
@@ -172,7 +187,7 @@ func TestUserLogin(t *testing.T) {
 	}
 }
 
-func TestUserLoginFailedWithBadJSONRequest(t *testing.T) {
+func TestLoginFailedWithBadJSONRequest(t *testing.T) {
 	app := newTestServer(t)
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("POST", "/Login", bytes.NewReader([]byte("badJsonRequest")))
@@ -184,8 +199,7 @@ func TestUserLoginFailedWithBadJSONRequest(t *testing.T) {
 		t.Errorf("Handler returned wrong status code. Expected: %d. Got: %d.", http.StatusBadRequest, status)
 	}
 }
-func TestCreatedANewUserSuccessfully(t *testing.T) {
-
+func TestCreateUserHandlerCreatedANewUserSuccessfully(t *testing.T) {
 	app := newTestServer(t)
 	//Making test user
 	createUserBody := map[string]interface{}{
@@ -206,8 +220,7 @@ func TestCreatedANewUserSuccessfully(t *testing.T) {
 		t.Errorf("Handler returned wrong status code. Expected: %d. Got: %d.", http.StatusCreated, status)
 	}
 }
-func TestCreatedANewUserFailedWithBadJSONRequest(t *testing.T) {
-
+func TestCreateUserHandlerFailedWithBadJSONRequest(t *testing.T) {
 	app := newTestServer(t)
 	requestBody, err := json.Marshal("badJsonRequest")
 	if err != nil {
