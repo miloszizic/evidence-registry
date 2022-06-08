@@ -1,6 +1,9 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/miloszizic/der/internal/data"
 	"net/http"
 	"time"
@@ -51,24 +54,27 @@ type LoginUserResponse struct {
 
 func (app *Application) LoginUser(request *data.UserRequest) (*LoginUserResponse, error) {
 	if request.Username == "" || request.Password == "" {
-		return nil, data.NewErrorf(data.ErrCodeInvalidCredentials, "username and password are required")
+		return nil, fmt.Errorf("%w : username and password are required", data.ErrInvalidCredentials)
 	}
 	user, err := app.stores.User.GetByUsername(request.Username)
 	if err != nil {
-		return nil, data.WrapErrorf(err, data.ErrCodeUnknown, "User.GetByUsername")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w : user not found", data.ErrUnauthorized)
+		}
+		return nil, fmt.Errorf("getting user :%q ", err)
 	}
 	match, err := user.Password.Matches(request.Password)
 	if err != nil {
-		return nil, data.WrapErrorf(err, data.ErrCodeUnknown, "Password.Matches")
+		return nil, fmt.Errorf("chaking password: %w", err)
 	}
 	if !match {
-		return nil, data.NewErrorf(data.ErrCodeInvalidCredentials, "invalid credentials")
+		return nil, fmt.Errorf("%w : invalid credentials", data.ErrInvalidCredentials)
 	}
 	accessToken, accessPayload, err := app.tokenMaker.CreateToken(
 		user.Username,
 		app.config.AccessTokenDuration)
 	if err != nil {
-		return nil, data.WrapErrorf(err, data.ErrCodeUnknown, "tokenMaker.CreateToken")
+		return nil, fmt.Errorf("creating access token: %w", err)
 	}
 	rsp := LoginUserResponse{
 		AccessToken:          accessToken,

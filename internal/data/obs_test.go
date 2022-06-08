@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/miloszizic/der/internal/data"
 	"io"
+	"strings"
 	"testing"
 )
 
@@ -214,7 +215,7 @@ func TestGetEvidenceInOBSSuccessful(t *testing.T) {
 	}
 	testEvidence := &data.Evidence{
 		Name: "test",
-		File: bytes.NewBufferString("s"),
+		File: bytes.NewBufferString("sample"),
 	}
 	err = store.OBStore.CreateCase(testCase)
 	if err != nil {
@@ -225,9 +226,17 @@ func TestGetEvidenceInOBSSuccessful(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	_, err = store.OBStore.GetEvidence(testCase.Name, testEvidence.Name)
+	got, err := store.OBStore.GetEvidence(testCase.Name, testEvidence.Name)
 	if err != nil {
-		t.Errorf("failed to retrieve evidence: %v", err)
+		t.Errorf("failed to get evidence: %v", err)
+	}
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, got)
+	if err != nil {
+		t.Errorf("failed to copy evidence: %v", err)
+	}
+	if buf.String() != "sample" {
+		t.Errorf("expected %v, got %v", "sample", buf.String())
 	}
 
 }

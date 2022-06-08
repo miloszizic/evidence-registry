@@ -1,9 +1,11 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/miloszizic/der/internal/data"
 	"net/http"
-	"strings"
 )
 
 // caseRequest is the request body for the case API
@@ -70,16 +72,16 @@ func (app *Application) requestParser(r *http.Request) (*data.User, string, erro
 	authPayload := r.Context().Value(authorizationPayloadKey).(*Payload)
 	user, err := app.stores.User.GetByUsername(authPayload.Username)
 	if err != nil {
-		return nil, "", err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, "", fmt.Errorf("getting user : %w", data.ErrNotFound)
+		}
+		return nil, "", fmt.Errorf("getting user : %w", err)
 	}
 	//read JSON request
 	var req caseRequest
 	err = app.readJSON(r, &req)
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "body") {
-			return nil, "", data.NewErrorf(data.ErrCodeInvalid, "readJSON")
-		}
-		return nil, "", data.WrapErrorf(err, data.ErrCodeUnknown, "requestParser")
+		return nil, "", err
 	}
 	return user, req.Name, nil
 }

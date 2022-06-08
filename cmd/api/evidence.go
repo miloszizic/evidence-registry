@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"github.com/miloszizic/der/internal/data"
 	"io"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Request) {
 	cs, err := app.caseParser(r)
 	if err != nil {
+		fmt.Println(err)
 		app.respondError(w, r, err)
 		return
 	}
@@ -103,16 +106,16 @@ func (app *Application) AddCommentHandler(w http.ResponseWriter, r *http.Request
 }
 
 // fileParser parses the evidence from the request body and returns it
-func (app *Application) fileParser(r *http.Request, cs *data.Case) (*data.Evidence, error) {
+func (*Application) fileParser(r *http.Request, cs *data.Case) (*data.Evidence, error) {
 	file, handler, err := r.FormFile("upload_file")
 	if err != nil {
-		if err.Error() == "http: no such file" {
-			return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "fileParser")
+		if errors.Is(err, http.ErrMissingFile) {
+			return nil, fmt.Errorf("%w : no file to uploaded : %v", data.ErrInvalidRequest, err)
 		}
-		return nil, data.WrapErrorf(err, data.ErrCodeUnknown, "r.FormFile")
+		return nil, fmt.Errorf("parsing file : %w", err)
 	}
 	if file == nil {
-		return nil, data.NewErrorf(data.ErrCodeInvalid, "fileParser: no file in request")
+		return nil, fmt.Errorf("%w: file is empty", data.ErrInvalidRequest)
 	}
 	defer file.Close()
 	evidence := &data.Evidence{
@@ -134,7 +137,7 @@ func (app *Application) commentParser(r *http.Request) (*data.Comment, error) {
 	var cm data.Comment
 	err = app.readJSON(r, &cm)
 	if err != nil {
-		return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "commentParser")
+		return nil, fmt.Errorf("parsing JSON comment : %w", err)
 	}
 	comment := data.Comment{
 		Text:       cm.Text,
@@ -148,7 +151,7 @@ func (app *Application) respondEvidence(w http.ResponseWriter, r *http.Request, 
 	// respond with evidence content
 	_, err := io.Copy(w, file)
 	if err != nil {
-		return data.WrapErrorf(err, data.ErrCodeUnknown, "io.Copy")
+		return fmt.Errorf("responding with evidence : %w", err)
 	}
 	err = app.writeJSON(w, http.StatusOK, envelope{"evidence": "downloaded"}, nil)
 	if err != nil {

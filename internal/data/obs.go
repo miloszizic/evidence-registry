@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"github.com/minio/minio-go/v7"
 	"io"
 	"strings"
@@ -38,7 +39,7 @@ type FS struct {
 func (f *FS) CreateCase(cs *Case) error {
 	exists, err := f.Minio.BucketExists(context.Background(), cs.Name)
 	if exists {
-		return NewErrorf(ErrCodeConflict, "case already exists")
+		return fmt.Errorf("%w : case : %q", ErrAlreadyExists, cs.Name)
 	}
 	if err != nil {
 		return err
@@ -84,10 +85,10 @@ func (f *FS) ListCases() ([]Case, error) {
 func (f *FS) CreateEvidence(evidence *Evidence, caseName string, file io.Reader) (string, error) {
 	// check if caseName contains forward slash
 	if strings.Contains(evidence.Name, "/") || strings.Contains(evidence.Name, " ") {
-		return "", NewErrorf(ErrCodeInvalid, "evidence name cannot contain forward slash or space")
+		return "", fmt.Errorf("%w : evidence can't contain forward slash or space : %q ", ErrInvalidRequest, evidence.Name)
 	}
 	if file == nil {
-		return "", NewErrorf(ErrCodeInvalid, "file can't be empty")
+		return "", fmt.Errorf("%w : file can't be nil ", ErrInvalidRequest)
 	}
 	h := sha256.New()
 	putFile := io.TeeReader(file, h)
@@ -134,6 +135,13 @@ func (f *FS) ListEvidences(caseName string) ([]Evidence, error) {
 func (f *FS) GetEvidence(caseName string, evidenceName string) (io.ReadCloser, error) {
 	object, err := f.Minio.GetObject(context.Background(), caseName, evidenceName, minio.GetObjectOptions{})
 	if err != nil {
+		return nil, err
+	}
+	_, err = object.Stat()
+	if err != nil {
+		if err.Error() == "The specified key does not exist" {
+			return nil, fmt.Errorf("%w : evidence : %q not found", ErrNotFound, evidenceName)
+		}
 		return nil, err
 	}
 	return object, nil

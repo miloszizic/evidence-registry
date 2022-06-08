@@ -14,35 +14,6 @@ import (
 	"testing"
 )
 
-// seedForHandlerTesting seeds the database with one user and one case for testing
-func seedForHandlerTesting(t *testing.T, app *Application) {
-	// get new test server
-	user := &data.User{
-		Username: "test",
-	}
-	err := user.Password.Set("test")
-	if err != nil {
-		t.Errorf("failed to set password: %v", err)
-	}
-	err = app.stores.User.Add(user)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// create a case
-	cs := &data.Case{
-		Name: "test",
-	}
-	user.ID = 1
-	err = app.stores.DBStore.AddCase(cs, user)
-	if err != nil {
-		t.Errorf("failed to add case: %v", err)
-	}
-	err = app.stores.OBStore.CreateCase(cs)
-	if err != nil {
-		t.Errorf("failed to add case: %v", err)
-	}
-}
-
 func TestCreateEvidenceHandler(t *testing.T) {
 	tests := []struct {
 		name                 string

@@ -2,6 +2,7 @@
 package data_test
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/miloszizic/der/internal/data"
 	"testing"
@@ -190,9 +191,8 @@ func TestSearchingForNonExistingUserByIDFailed(t *testing.T) {
 	}
 	_, err = store.User.GetByID(1)
 	//check error code
-	var verr *data.Error
-	if !errors.As(err, &verr) || verr.Code() != data.ErrCodeNotFound {
-		t.Errorf("expected error code %v but got %v", data.ErrCodeNotFound, verr.Code())
+	if !errors.Is(err, data.ErrNotFound) {
+		t.Errorf("expected error %v but got %v", data.ErrNotFound, err)
 	}
 
 }
@@ -202,8 +202,7 @@ func TestSearchingForNonExistingUserByUsernameFailed(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = store.User.GetByUsername("Simba")
-	var verr *data.Error
-	if !errors.As(err, &verr) || verr.Code() != data.ErrCodeNotFound {
-		t.Errorf("expected error code %v but got %v", data.ErrCodeNotFound, verr.Code())
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("expected error %v but got %v", data.ErrNotFound, err)
 	}
 }

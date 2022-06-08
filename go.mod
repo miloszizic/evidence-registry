@@ -12,6 +12,7 @@ require (
 	github.com/o1egl/paseto v1.0.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220408190544-5352b0902921
+	golang.org/x/exp v0.0.0-20220602145555-4a0574d9293f
 )
 
 require (

@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"io"
 )
@@ -58,7 +59,7 @@ func NewDBStore(db *sql.DB) DBStore {
 // AddCase a new case to the database or return an error
 func (d *DB) AddCase(cs *Case, user *User) error {
 	if cs.Name == "" {
-		return NewErrorf(ErrCodeInvalid, "case name can't be empty")
+		return fmt.Errorf("%w : case name cannot be empty", ErrInvalidRequest)
 	}
 	tx, err := d.DB.Begin()
 	if err != nil {
@@ -134,7 +135,7 @@ func (d *DB) GetCaseByUserID(userID int64) ([]Case, error) {
 	rows, err := d.DB.Query(`SELECT * FROM "cases" WHERE id IN (SELECT case_id FROM "user_cases" WHERE user_id = $1)`, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NewErrorf(ErrCodeNotFound, "case not found")
+			return nil, fmt.Errorf("%w : user id : %d", ErrNotFound, userID)
 		}
 		return nil, err
 	}
@@ -227,7 +228,7 @@ func (d *DB) GetEvidenceByName(cs *Case, name string) (*Evidence, error) {
 	err := d.DB.QueryRow("SELECT id, case_id, name, hash FROM evidences WHERE case_id = $1 AND name = $2", cs.ID, name).Scan(&object.ID, &object.CaseID, &object.Name, &object.Hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, WrapErrorf(err, ErrCodeNotFound, "DB.QueryRow: evidence not found")
+			return nil, fmt.Errorf("%w :evidence not found: %q", ErrInvalidRequest, name)
 		}
 		return nil, err
 	}

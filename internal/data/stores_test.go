@@ -142,28 +142,28 @@ func TestCreateCaseInDBAndOBS(t *testing.T) {
 	tests := []struct {
 		name string
 		cs   *data.Case
-		want data.ErrorCode
+		want error
 	}{
 		{
 			name: "with no name fails",
 			cs: &data.Case{
 				Name: "",
 			},
-			want: data.ErrCodeInvalid,
+			want: data.ErrInvalidRequest,
 		},
 		{
 			name: "with not allowed special characters fails",
 			cs: &data.Case{
 				Name: "test/test",
 			},
-			want: data.ErrCodeInvalid,
+			want: data.ErrInvalidRequest,
 		},
 		{
 			name: "with existing case fails",
 			cs: &data.Case{
-				Name: "test",
+				Name: "case",
 			},
-			want: data.ErrCodeExists,
+			want: data.ErrAlreadyExists,
 		},
 	}
 	for _, tt := range tests {
@@ -187,7 +187,7 @@ func TestCreateCaseInDBAndOBS(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error adding user: %v", err)
 			}
-			//Add a case for test
+			//Add a case for existing case test
 			cs := &data.Case{
 				Name: "case",
 			}
@@ -195,12 +195,11 @@ func TestCreateCaseInDBAndOBS(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error creating case: %v", err)
 			}
-			var verr *data.Error
+			// testing CreateCase
 			err = stores.CreateCase(user, tt.cs.Name)
-			if err != nil {
-				if errors.As(err, &verr) && verr.Code() != tt.want {
-					t.Errorf("Unexpected error = %v, wanted %v", err, tt.want)
-				}
+			if !errors.Is(err, tt.want) {
+				t.Errorf("got :%v, wanted :%v", err, tt.want)
+
 			}
 		})
 	}
@@ -464,10 +463,14 @@ func TestCreateEvidenceRemovesEvidenceFromOBSIfAddingToDBFails(t *testing.T) {
 		Name: "test",
 	}
 	err = stores.CreateEvidence(ev, cs)
-	var veer *data.Error
-	if !errors.As(err, &veer) || veer.Code() != data.ErrCodeUnknown {
-		t.Errorf("Expected error code %v, but got %v", data.ErrCodeUnknown, err)
+	if err == nil {
+		t.Errorf("should return an error, but it did not")
 	}
+	_, err = stores.OBStore.GetEvidence(cs.Name, ev.Name)
+	if errors.Is(err, data.ErrNotFound) {
+		t.Errorf("expected err : %v, but got %v", data.ErrNotFound, err)
+	}
+
 }
 func TestCreateEvidenceFailsIfEvidenceExistsInDB(t *testing.T) {
 	stores, err := GetTestStores(t)
@@ -553,9 +556,8 @@ func TestCreateEvidenceFailsIfEvidenceExistsInOBS(t *testing.T) {
 		t.Errorf("Error creating evidence: %v", err)
 	}
 	err = stores.CreateEvidence(ev, cs)
-	var veer *data.Error
-	if !errors.As(err, &veer) || veer.Code() != data.ErrCodeExists {
-		t.Errorf("Expected code : %v, but got %v", data.ErrCodeExists, err)
+	if !errors.Is(err, data.ErrAlreadyExists) {
+		t.Errorf("Expected code : %v, but got %v", data.ErrAlreadyExists, err)
 	}
 }
 func TestGetEvidenceByID(t *testing.T) {

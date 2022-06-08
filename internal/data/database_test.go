@@ -592,9 +592,8 @@ func TestGetEvidenceByNameReturnedErrorForMissingEvidence(t *testing.T) {
 		}
 	}
 	_, err = store.DBStore.GetEvidenceByName(testCase, "dog")
-	var verr *data.Error
-	if errors.Is(err, verr) && verr.Code() != data.ErrCodeNotFound {
-		t.Errorf("Expected ErrNoEvidenceFound, got %v", err)
+	if errors.Is(err, data.ErrNotFound) {
+		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
 
 }

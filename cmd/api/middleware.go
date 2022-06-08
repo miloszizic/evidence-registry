@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/miloszizic/der/internal/data"
@@ -33,7 +32,6 @@ func (app *Application) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		authorizationType := strings.ToLower(fields[0])
-		//if authorizationType != string(authorizationTypeBearer) {
 		if authorizationType != "bearer" {
 			app.invalidAuthorisationHeaderFormat(w, r)
 			return
@@ -54,22 +52,15 @@ func (app *Application) AuthMiddleware(next http.Handler) http.Handler {
 }
 func (app *Application) MiddlewarePermissionChecker(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var verr *data.Error
 		ctxPayload := r.Context().Value(authorizationPayloadKey)
 		payload := ctxPayload.(*Payload)
 		user, err := app.stores.User.GetByUsername(payload.Username)
 		if err != nil {
-			switch {
-			case errors.As(err, &verr) && verr.Code() == data.ErrCodeNotFound:
-				app.unauthorizedUser(w, r)
-				return
-			default:
-				app.respondError(w, r, err)
-				return
-			}
+			app.respondError(w, r, err)
+			return
 		}
 		if user.Role != "admin" {
-			app.unauthorizedUser(w, r)
+			app.respondError(w, r, data.ErrUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), authorizationPayloadKey, payload)

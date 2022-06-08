@@ -1,8 +1,10 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/miloszizic/der/internal/data"
 	"io"
@@ -16,7 +18,7 @@ func (app *Application) caseParser(r *http.Request) (*data.Case, error) {
 	urlID := chi.URLParam(r, "caseID")
 	id, err := strconv.ParseInt(urlID, 10, 64)
 	if err != nil || id < 1 {
-		return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "invalid id parameter")
+		return nil, fmt.Errorf("%w : invalid id parameter", data.ErrInvalidRequest)
 	}
 	cs, err := app.stores.GetCaseByID(id)
 	if err != nil {
@@ -30,7 +32,7 @@ func (app *Application) evidenceParser(r *http.Request) (*data.Evidence, error) 
 	evID := chi.URLParam(r, "evidenceID")
 	id, err := strconv.ParseInt(evID, 10, 64)
 	if err != nil || id < 1 {
-		return nil, data.WrapErrorf(err, data.ErrCodeInvalid, "invalid id parameter")
+		return nil, fmt.Errorf("%w : invalid id parameter", data.ErrInvalidRequest)
 	}
 	cs, err := app.caseParser(r)
 	if err != nil {
@@ -81,38 +83,38 @@ func (*Application) readJSON(r *http.Request, dst interface{}) error {
 
 		switch {
 		case errors.As(err, &syntaxError):
-			return data.NewErrorf(data.ErrCodeInvalid, "body contains badly-formed JSON (at character %d)", syntaxError.Offset)
+			return fmt.Errorf("%w: request body contains badly-formed JSON (at position %d)", data.ErrInvalidRequest, syntaxError.Offset)
 
 		case errors.Is(err, io.ErrUnexpectedEOF):
-			return data.NewErrorf(data.ErrCodeInvalid, "body contains badly-formed JSON")
+			return fmt.Errorf("%w: request body contains badly-formed JSON", data.ErrInvalidRequest)
 
 		case errors.As(err, &unmarshalTypeError):
 			if unmarshalTypeError.Field != "" {
-				return data.NewErrorf(data.ErrCodeInvalid, "body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
+				return fmt.Errorf("%w: request body contains an invalid value for the %q field (at position %d)", data.ErrInvalidRequest, unmarshalTypeError.Field, unmarshalTypeError.Offset)
 			}
-			return data.NewErrorf(data.ErrCodeInvalid, "body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
+			return fmt.Errorf("%w: request body contains an invalid value (at position %d)", data.ErrInvalidRequest, unmarshalTypeError.Offset)
 
 		case errors.Is(err, io.EOF):
-			return data.NewErrorf(data.ErrCodeInvalid, "body must not be empty")
+			return fmt.Errorf("%w: request body must not be empty", data.ErrInvalidRequest)
 
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
 			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-			return data.NewErrorf(data.ErrCodeInvalid, "body contains unknown key %s", fieldName)
+			return fmt.Errorf("%w: request body contains unknown field %s", data.ErrInvalidRequest, fieldName)
 
 		case err.Error() == "http: request body too large":
-			return data.NewErrorf(data.ErrCodeInvalid, "body must not be larger than %d bytes", 1_048_576)
+			return fmt.Errorf("%w: request body is larger than %d ", data.ErrInvalidRequest, 1_048_576)
 
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
 
 		default:
-			return data.WrapErrorf(err, data.ErrCodeUnknown, "unexpected error")
+			return fmt.Errorf("reading JSON : %w: ", err)
 		}
 	}
 
 	err = dec.Decode(&struct{}{})
 	if err != io.EOF {
-		return data.NewErrorf(data.ErrCodeInvalid, "body must only contain a single JSON value")
+		return fmt.Errorf("%w: request body must only contain a single JSON object", data.ErrInvalidRequest)
 	}
 
 	return nil
@@ -120,24 +122,20 @@ func (*Application) readJSON(r *http.Request, dst interface{}) error {
 
 // respondError writes an error response to all kinds of errors.
 func (app *Application) respondError(w http.ResponseWriter, r *http.Request, err error) {
-	var verr *data.Error
-	if errors.As(err, &verr) {
-		switch verr.Code() {
-		case data.ErrCodeNotFound:
-			app.notFoundResponse(w, r)
-		case data.ErrCodeConflict:
-			app.alreadyExists(w, r)
-		case data.ErrCodeInvalidCredentials:
-			app.invalidCredentialsResponse(w, r)
-		case data.ErrCodeExists:
-			app.alreadyExists(w, r)
-		case data.ErrCodeUnknown:
-			app.serverErrorResponse(w, r, err)
-		case data.ErrCodeInvalid:
-			app.badRequestResponse(w, r, err)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		app.unauthorizedUser(w, r)
+	case errors.Is(err, data.ErrNotFound):
+		app.notFoundResponse(w, r)
+	case errors.Is(err, data.ErrAlreadyExists):
+		app.alreadyExists(w, r)
+	case errors.Is(err, data.ErrInvalidRequest):
+		app.badRequestResponse(w, r, err)
+	case errors.Is(err, data.ErrUnauthorized):
+		app.unauthorizedUser(w, r)
+	case errors.Is(err, data.ErrInvalidCredentials):
+		app.invalidCredentialsResponse(w, r)
+	default:
+		app.serverErrorResponse(w, r, err)
 	}
-	app.serverErrorResponse(w, r, err)
 }
