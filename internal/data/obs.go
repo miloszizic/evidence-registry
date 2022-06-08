@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// OBStore is object-base storage interface for storing and retrieving data from object storage
-type OBStore interface {
+// ObjectStore is object-base storage interface for storing and retrieving data from object storage
+type ObjectStore interface {
 	CreateCase(cs *Case) error
 	RemoveCase(name string) error
 	CaseExists(name string) (bool, error)
@@ -23,7 +23,7 @@ type OBStore interface {
 	GetEvidence(caseName string, evidenceName string) (io.ReadCloser, error)
 }
 
-func NewOBS(minio *minio.Client) OBStore {
+func NewObjectStore(minio *minio.Client) ObjectStore {
 	return &FS{Minio: minio}
 }
 

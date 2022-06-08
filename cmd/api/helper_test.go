@@ -122,7 +122,7 @@ func seedForHandlerTesting(t *testing.T, app *Application) {
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = app.stores.OBStore.CreateCase(cs)
+	err = app.stores.ObjectStore.CreateCase(cs)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}

@@ -321,7 +321,7 @@ func TestRemoveCaseHandler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = app.stores.OBStore.CreateCase(cs)
+			err = app.stores.ObjectStore.CreateCase(cs)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -362,7 +362,7 @@ func TestRemoveCaseHandlerFailedForCaseThatDoesNotExistInDB(t *testing.T) {
 	cs := &data.Case{
 		Name: "ssss",
 	}
-	err = app.stores.OBStore.CreateCase(cs)
+	err = app.stores.ObjectStore.CreateCase(cs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,13 +461,13 @@ func TestListCasesHandlerListedAllCasesThatExistInDBAndStorage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = app.stores.OBStore.CreateCase(&cs)
+		err = app.stores.ObjectStore.CreateCase(&cs)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	//AddCase additional case to storage to test filtering
-	err = app.stores.OBStore.CreateCase(&data.Case{
+	err = app.stores.ObjectStore.CreateCase(&data.Case{
 		Name: "pspg-k-25-25",
 	})
 	if err != nil {

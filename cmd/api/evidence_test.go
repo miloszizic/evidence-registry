@@ -200,7 +200,7 @@ func TestGetEvidenceHandler(t *testing.T) {
 			// seed the database with one user and case for testing
 			seedForHandlerTesting(t, app)
 
-			hash, err := app.stores.OBStore.CreateEvidence(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
+			hash, err := app.stores.ObjectStore.CreateEvidence(tt.alreadyAddedEvidence, "test", tt.alreadyAddedEvidence.File)
 			if err != nil {
 				return
 			}
@@ -305,7 +305,7 @@ func TestDeleteEvidenceHandler(t *testing.T) {
 			// seed the database with one user,case and evidence for testing
 			seedForHandlerTesting(t, app)
 			// add evidence to the database
-			hash, err := app.stores.OBStore.CreateEvidence(tt.addEvidence, "test", tt.addEvidence.File)
+			hash, err := app.stores.ObjectStore.CreateEvidence(tt.addEvidence, "test", tt.addEvidence.File)
 			if err != nil {
 				return
 			}
@@ -372,9 +372,9 @@ func TestListEvidencesHandlerReturnedAllEvidencesFromDBAndOBS(t *testing.T) {
 			File:   bytes.NewBufferString("test2"),
 		},
 	}
-	// add evidence to the database and OBStore
+	// add evidence to the database and ObjectStore
 	for _, evidence := range want {
-		hash, err := app.stores.OBStore.CreateEvidence(evidence, "test", evidence.File)
+		hash, err := app.stores.ObjectStore.CreateEvidence(evidence, "test", evidence.File)
 		if err != nil {
 			return
 		}
@@ -510,7 +510,7 @@ func TestAddCommentHandler(t *testing.T) {
 				},
 			}
 			for _, evidence := range evidences {
-				hash, err := app.stores.OBStore.CreateEvidence(evidence, "test", evidence.File)
+				hash, err := app.stores.ObjectStore.CreateEvidence(evidence, "test", evidence.File)
 				if err != nil {
 					return
 				}

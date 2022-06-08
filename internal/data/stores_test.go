@@ -466,7 +466,7 @@ func TestCreateEvidenceRemovesEvidenceFromOBSIfAddingToDBFails(t *testing.T) {
 	if err == nil {
 		t.Errorf("should return an error, but it did not")
 	}
-	_, err = stores.OBStore.GetEvidence(cs.Name, ev.Name)
+	_, err = stores.ObjectStore.GetEvidence(cs.Name, ev.Name)
 	if errors.Is(err, data.ErrNotFound) {
 		t.Errorf("expected err : %v, but got %v", data.ErrNotFound, err)
 	}
@@ -511,7 +511,7 @@ func TestCreateEvidenceFailsIfEvidenceExistsInDB(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error creating evidence, but got none")
 	}
-	exists, err := stores.OBStore.EvidenceExists(cs.Name, ev.Name)
+	exists, err := stores.ObjectStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
 		t.Errorf("Error checking evidence exists: %v", err)
 	}
@@ -551,7 +551,7 @@ func TestCreateEvidenceFailsIfEvidenceExistsInOBS(t *testing.T) {
 	cs := &data.Case{
 		Name: "test",
 	}
-	_, err = stores.OBStore.CreateEvidence(ev, "test", ev.File)
+	_, err = stores.ObjectStore.CreateEvidence(ev, "test", ev.File)
 	if err != nil {
 		t.Errorf("Error creating evidence: %v", err)
 	}

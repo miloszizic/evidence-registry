@@ -10,17 +10,17 @@ import (
 )
 
 type Stores struct {
-	User    UserStore
-	DBStore DBStore
-	OBStore OBStore
+	User        UserStore
+	DBStore     DBStore
+	ObjectStore ObjectStore
 }
 
 // NewStores creates a new Stores object
 func NewStores(db *sql.DB, client *minio.Client) Stores {
 	return Stores{
-		User:    NewUserStore(db),
-		DBStore: NewDBStore(db),
-		OBStore: NewOBS(client),
+		User:        NewUserStore(db),
+		DBStore:     NewDBStore(db),
+		ObjectStore: NewObjectStore(client),
 	}
 }
 func (s *Stores) CreateCase(user *User, name string) error {
@@ -35,8 +35,8 @@ func (s *Stores) CreateCase(user *User, name string) error {
 	cs := &Case{
 		Name: name,
 	}
-	// create case in OBStore
-	err = s.OBStore.CreateCase(cs)
+	// create case in ObjectStore
+	err = s.ObjectStore.CreateCase(cs)
 	if err != nil {
 		switch {
 		case err.Error() == "Bucket name contains invalid characters":
@@ -50,7 +50,7 @@ func (s *Stores) CreateCase(user *User, name string) error {
 	// create case in database
 	err = s.DBStore.AddCase(cs, user)
 	if err != nil {
-		errR := s.OBStore.RemoveCase(name)
+		errR := s.ObjectStore.RemoveCase(name)
 		if errR != nil {
 			return fmt.Errorf("creating case in DB : %w, removing case from object store : %v ", err, errR)
 		}
@@ -82,16 +82,16 @@ func (s *Stores) RemoveCase(name string) error {
 	if err != nil {
 		return fmt.Errorf(" getting case in DB :%w, case name: %q  ", err, name)
 	}
-	// check if case exists in the OBStore
-	exist, err = s.OBStore.CaseExists(cs.Name)
+	// check if case exists in the ObjectStore
+	exist, err = s.ObjectStore.CaseExists(cs.Name)
 	if err != nil {
 		return fmt.Errorf(" checking case in object store :%w, case name: %q  ", err, name)
 	}
 	if !exist {
 		return fmt.Errorf(" %w: case name: %q ", ErrNotFound, name)
 	}
-	// remove case from OBStore
-	err = s.OBStore.RemoveCase(cs.Name)
+	// remove case from ObjectStore
+	err = s.ObjectStore.RemoveCase(cs.Name)
 	if err != nil {
 		return fmt.Errorf("%w : removing case from object store: %q ", err, cs.Name)
 	}
@@ -108,8 +108,8 @@ func (s *Stores) ListCases() ([]Case, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list cases from DB: %w ", err)
 	}
-	//get all cases in the OBStore
-	casesFS, err := s.OBStore.ListCases()
+	//get all cases in the ObjectStore
+	casesFS, err := s.ObjectStore.ListCases()
 	if err != nil {
 		return nil, fmt.Errorf("list cases from object storage: %w ", err)
 	}
@@ -135,16 +135,16 @@ func (s *Stores) CreateEvidence(ev *Evidence, cs *Case) error {
 	if exist {
 		return fmt.Errorf(" %w in DB: evidence name: %q ", ErrAlreadyExists, ev.Name)
 	}
-	//check if the evidence already exists in the OBStore
-	exist, err = s.OBStore.EvidenceExists(cs.Name, ev.Name)
+	//check if the evidence already exists in the ObjectStore
+	exist, err = s.ObjectStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
 		return fmt.Errorf("chaking evidence in object store: %w , evidence name: %q ", err, ev.Name)
 	}
 	if exist {
 		return fmt.Errorf(" %w in object storage: evidence name: %q ", ErrAlreadyExists, ev.Name)
 	}
-	// create the evidence in OBStore and generate hash
-	hash, err := s.OBStore.CreateEvidence(ev, cs.Name, ev.File)
+	// create the evidence in ObjectStore and generate hash
+	hash, err := s.ObjectStore.CreateEvidence(ev, cs.Name, ev.File)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (s *Stores) CreateEvidence(ev *Evidence, cs *Case) error {
 	ev.Hash = hash
 	id, err := s.DBStore.CreateEvidence(ev)
 	if err != nil {
-		errR := s.OBStore.RemoveEvidence(ev, cs.Name)
+		errR := s.ObjectStore.RemoveEvidence(ev, cs.Name)
 		if errR != nil {
 			return fmt.Errorf("creating evidence in DB : %w, removing evidence from object store : %v ", err, errR)
 		}
@@ -180,15 +180,15 @@ func (s *Stores) DownloadEvidence(ev *Evidence) (*io.ReadCloser, error) {
 		}
 		return nil, fmt.Errorf("getting case by ID from DB: %w , evidence id: %d ", err, ev.CaseID)
 	}
-	// check if the evidence exists in the OBStore
-	exist, err := s.OBStore.EvidenceExists(cs.Name, ev.Name)
+	// check if the evidence exists in the ObjectStore
+	exist, err := s.ObjectStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
 		return nil, fmt.Errorf("chaking evidence in object store: %w , evidence name: %q ", err, ev.Name)
 	}
 	if !exist {
 		return nil, fmt.Errorf(" %w in object storage: evidence name: %q ", ErrNotFound, ev.Name)
 	}
-	evidence, err := s.OBStore.GetEvidence(cs.Name, ev.Name)
+	evidence, err := s.ObjectStore.GetEvidence(cs.Name, ev.Name)
 	if err != nil {
 		return nil, fmt.Errorf("getting evidence in object store: %w , evidence name: %q ", err, ev.Name)
 	}
@@ -210,8 +210,8 @@ func (s *Stores) DeleteEvidence(ev *Evidence) error {
 	if err != nil {
 		return fmt.Errorf("getting case by ID in DB store: %w , case ID: %d and evidence name : %q ", err, ev.CaseID, ev.Name)
 	}
-	// check if the evidence exists in the OBStore
-	exist, err = s.OBStore.EvidenceExists(cs.Name, ev.Name)
+	// check if the evidence exists in the ObjectStore
+	exist, err = s.ObjectStore.EvidenceExists(cs.Name, ev.Name)
 	if err != nil {
 		return fmt.Errorf("chaking evidence in object store: %w , evidence name: %q ", err, ev.Name)
 	}
@@ -223,8 +223,8 @@ func (s *Stores) DeleteEvidence(ev *Evidence) error {
 	if err != nil {
 		return fmt.Errorf("removing evidence from DB: %w , evidence name: %q ", err, ev.Name)
 	}
-	// delete evidence from the OBStore
-	err = s.OBStore.RemoveEvidence(ev, cs.Name)
+	// delete evidence from the ObjectStore
+	err = s.ObjectStore.RemoveEvidence(ev, cs.Name)
 	if err != nil {
 		return fmt.Errorf("removing evidence from object store: %w , evidence name: %q ", err, ev.Name)
 	}
@@ -239,12 +239,12 @@ func (s *Stores) ListEvidences(cs *Case) ([]Evidence, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting evidences from DB: %w , case ID: %d ", err, cs.ID)
 	}
-	// list evidences in OBStore
-	evidencesFS, err := s.OBStore.ListEvidences(cs.Name)
+	// list evidences in ObjectStore
+	evidencesFS, err := s.ObjectStore.ListEvidences(cs.Name)
 	if err != nil {
 		return nil, fmt.Errorf("getting evidences from object store: %w , case ID: %d ", err, cs.ID)
 	}
-	// filter out evidences that are not in the OBStore
+	// filter out evidences that are not in the ObjectStore
 	var result []Evidence
 	for _, evDB := range evidencesDB {
 		for _, evFS := range evidencesFS {

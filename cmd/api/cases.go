@@ -14,7 +14,7 @@ type caseRequest struct {
 	Tag  string `json:"tag"`
 }
 
-// CreateCaseHandler creates a new case in the database and OBStore
+// CreateCaseHandler creates a new case in the database and ObjectStore
 func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request) {
 	user, name, err := app.requestParser(r)
 	if err != nil {
@@ -29,7 +29,7 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 	app.respond(w, r, http.StatusCreated, envelope{"Case": "case successfully created"})
 }
 
-// RemoveCaseHandler removes a case from the database and OBStore
+// RemoveCaseHandler removes a case from the database and ObjectStore
 func (app *Application) RemoveCaseHandler(w http.ResponseWriter, r *http.Request) {
 	_, name, err := app.requestParser(r)
 	if err != nil {

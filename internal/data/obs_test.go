@@ -63,7 +63,7 @@ func TestCreateCaseInOBS(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to get test stores: %v", err)
 			}
-			err = store.OBStore.CreateCase(tt.addCase)
+			err = store.ObjectStore.CreateCase(tt.addCase)
 			got := err != nil
 			if got != tt.wantErr {
 				t.Errorf("expected %v, got %v", tt.wantErr, got)
@@ -101,11 +101,11 @@ func TestRemoveCaseInOBS(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to get test stores: %v", err)
 			}
-			err = store.OBStore.CreateCase(tt.addCase)
+			err = store.ObjectStore.CreateCase(tt.addCase)
 			if err != nil {
 				t.Errorf("failed to add case: %v", err)
 			}
-			err = store.OBStore.RemoveCase(tt.deleteCase)
+			err = store.ObjectStore.RemoveCase(tt.deleteCase)
 			got := err != nil
 			if got != tt.wantErr {
 				t.Errorf("expected %v, got %v", tt.wantErr, got)
@@ -118,13 +118,13 @@ func TestCreateCaseInOBSReturnedErrorBecauseCaseAlreadyExists(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.OBStore.CreateCase(&data.Case{
+	err = store.ObjectStore.CreateCase(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = store.OBStore.CreateCase(&data.Case{
+	err = store.ObjectStore.CreateCase(&data.Case{
 		Name: "test",
 	})
 	if err == nil {
@@ -191,13 +191,13 @@ func TestCreateEvidenceInOBS(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to get test stores: %v", err)
 			}
-			err = store.OBStore.CreateCase(&data.Case{
+			err = store.ObjectStore.CreateCase(&data.Case{
 				Name: tt.caseName,
 			})
 			if err != nil {
 				t.Errorf("failed to add case: %v", err)
 			}
-			_, err = store.OBStore.CreateEvidence(tt.addEvidence, tt.caseName, tt.File)
+			_, err = store.ObjectStore.CreateEvidence(tt.addEvidence, tt.caseName, tt.File)
 			got := err != nil
 			if got != tt.wantErr {
 				t.Errorf("expected %v, got %v", tt.wantErr, got)
@@ -217,16 +217,16 @@ func TestGetEvidenceInOBSSuccessful(t *testing.T) {
 		Name: "test",
 		File: bytes.NewBufferString("sample"),
 	}
-	err = store.OBStore.CreateCase(testCase)
+	err = store.ObjectStore.CreateCase(testCase)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
 
-	_, err = store.OBStore.CreateEvidence(testEvidence, testCase.Name, testEvidence.File)
+	_, err = store.ObjectStore.CreateEvidence(testEvidence, testCase.Name, testEvidence.File)
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	got, err := store.OBStore.GetEvidence(testCase.Name, testEvidence.Name)
+	got, err := store.ObjectStore.GetEvidence(testCase.Name, testEvidence.Name)
 	if err != nil {
 		t.Errorf("failed to get evidence: %v", err)
 	}
@@ -245,19 +245,19 @@ func TestCreateEvidenceWithDifferentFilesGeneratedDifferentHashes(t *testing.T) 
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.OBStore.CreateCase(&data.Case{
+	err = store.ObjectStore.CreateCase(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	hash1, err := store.OBStore.CreateEvidence(&data.Evidence{
+	hash1, err := store.ObjectStore.CreateEvidence(&data.Evidence{
 		Name: "test1",
 	}, "test", bytes.NewBufferString("ss"))
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	hash2, err := store.OBStore.CreateEvidence(&data.Evidence{
+	hash2, err := store.ObjectStore.CreateEvidence(&data.Evidence{
 		Name: "test2",
 	}, "test", bytes.NewBufferString("ssss"))
 	if err != nil {
@@ -280,16 +280,16 @@ func TestRemoveEvidenceInOBSSuccessful(t *testing.T) {
 		Name: "test",
 		File: bytes.NewBufferString("s"),
 	}
-	err = store.OBStore.CreateCase(testCase)
+	err = store.ObjectStore.CreateCase(testCase)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
 
-	_, err = store.OBStore.CreateEvidence(testEvidence, testCase.Name, testEvidence.File)
+	_, err = store.ObjectStore.CreateEvidence(testEvidence, testCase.Name, testEvidence.File)
 	if err != nil {
 		t.Errorf("failed to add evidence: %v", err)
 	}
-	err = store.OBStore.RemoveEvidence(testEvidence, testCase.Name)
+	err = store.ObjectStore.RemoveEvidence(testEvidence, testCase.Name)
 	if err != nil {
 		t.Errorf("failed to remove evidence: %v", err)
 	}
@@ -299,19 +299,19 @@ func TestListCasesInOBSReturnedAllCasesInOBS(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get test stores: %v", err)
 	}
-	err = store.OBStore.CreateCase(&data.Case{
+	err = store.ObjectStore.CreateCase(&data.Case{
 		Name: "test",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	err = store.OBStore.CreateCase(&data.Case{
+	err = store.ObjectStore.CreateCase(&data.Case{
 		Name: "test2",
 	})
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
-	cases, err := store.OBStore.ListCases()
+	cases, err := store.ObjectStore.ListCases()
 	if err != nil {
 		t.Errorf("failed to list all cases: %v", err)
 	}
@@ -345,19 +345,19 @@ func TestEvidenceExistsInOBSReturns(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to get test stores: %v", err)
 			}
-			err = store.OBStore.CreateCase(&data.Case{
+			err = store.ObjectStore.CreateCase(&data.Case{
 				Name: "test",
 			})
 			if err != nil {
 				t.Errorf("failed to add case: %v", err)
 			}
-			_, err = store.OBStore.CreateEvidence(&data.Evidence{
+			_, err = store.ObjectStore.CreateEvidence(&data.Evidence{
 				Name: "test",
 			}, tt.caseName, bytes.NewBufferString("s"))
 			if err != nil {
 				t.Errorf("failed to add evidence: %v", err)
 			}
-			got, err := store.OBStore.EvidenceExists(tt.caseName, tt.evidenceName)
+			got, err := store.ObjectStore.EvidenceExists(tt.caseName, tt.evidenceName)
 			if err != nil {
 				t.Errorf("failed to check evidence exists: %v", err)
 			}
@@ -385,17 +385,17 @@ func TestListEvidencesReturnedAllEvidencesInOBS(t *testing.T) {
 			File: bytes.NewBufferString("file2"),
 		},
 	}
-	err = store.OBStore.CreateCase(testCase)
+	err = store.ObjectStore.CreateCase(testCase)
 	if err != nil {
 		t.Errorf("failed to add case: %v", err)
 	}
 	for _, e := range want {
-		_, err = store.OBStore.CreateEvidence(&e, testCase.Name, e.File)
+		_, err = store.ObjectStore.CreateEvidence(&e, testCase.Name, e.File)
 		if err != nil {
 			t.Errorf("failed to add evidence: %v", err)
 		}
 	}
-	evidence, err := store.OBStore.ListEvidences(testCase.Name)
+	evidence, err := store.ObjectStore.ListEvidences(testCase.Name)
 	if err != nil {
 		t.Errorf("failed to list all evidence: %v", err)
 	}

@@ -31,7 +31,7 @@ func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Req
 }
 
 // ListEvidencesHandler returns all evidences for a case by comparing evidences in the
-// database with the ones in the OBStore
+// database with the ones in the ObjectStore
 func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Request) {
 	cs, err := app.caseParser(r)
 	if err != nil {
@@ -46,7 +46,7 @@ func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Requ
 	app.respond(w, r, http.StatusOK, envelope{"evidences": evidences})
 }
 
-// DownloadEvidenceHandler returns an evidence from the database and the OBStore
+// DownloadEvidenceHandler returns an evidence from the database and the ObjectStore
 func (app *Application) DownloadEvidenceHandler(w http.ResponseWriter, r *http.Request) {
 	// get evidence from the request
 	ev, err := app.evidenceParser(r)
@@ -54,7 +54,7 @@ func (app *Application) DownloadEvidenceHandler(w http.ResponseWriter, r *http.R
 		app.respondError(w, r, err)
 		return
 	}
-	// get evidence from the OBStore
+	// get evidence from the ObjectStore
 	file, err := app.stores.DownloadEvidence(ev)
 	if err != nil {
 		app.respondError(w, r, err)
@@ -69,7 +69,7 @@ func (app *Application) DownloadEvidenceHandler(w http.ResponseWriter, r *http.R
 
 }
 
-// DeleteEvidenceHandler deletes an evidence from the database and the OBStore
+// DeleteEvidenceHandler deletes an evidence from the database and the ObjectStore
 func (app *Application) DeleteEvidenceHandler(w http.ResponseWriter, r *http.Request) {
 	// get evidence from the request
 	ev, err := app.evidenceParser(r)
