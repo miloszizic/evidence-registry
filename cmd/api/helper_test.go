@@ -88,12 +88,12 @@ func restartTestMinio(client *minio.Client, t *testing.T) {
 	for _, bucket := range buckets {
 		objects := client.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{})
 		for object := range objects {
-			err := client.RemoveObject(ctx, bucket.Name, object.Key, minio.RemoveObjectOptions{})
-			if err != nil {
-				t.Fatal(err)
+			errR := client.RemoveObject(ctx, bucket.Name, object.Key, minio.RemoveObjectOptions{})
+			if errR != nil {
+				t.Fatal(errR)
 			}
 		}
-		if err := client.RemoveBucket(context.Background(), bucket.Name); err != nil {
+		if err = client.RemoveBucket(context.Background(), bucket.Name); err != nil {
 			t.Fatal(err)
 		}
 	}
