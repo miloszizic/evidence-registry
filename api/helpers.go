@@ -152,21 +152,21 @@ func (app *Application) roleIDParser(r *http.Request) (uuid.UUID, error) {
 // permissionIDParser is a helper function that extracts the 'permissionID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'permissionID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) permissionIDParser(r *http.Request) (uuid.UUID, error) {
+func permissionIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "permissionID")
 }
 
 // evidenceIDParser is a helper function that extracts the 'evidenceID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'evidenceID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) evidenceIDParser(r *http.Request) (uuid.UUID, error) {
+func evidenceIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "evidenceID")
 }
 
 // userIDParser is a helper function that extracts the 'userID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'userID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) userIDParser(r *http.Request) (uuid.UUID, error) {
+func userIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "userID")
 }
 

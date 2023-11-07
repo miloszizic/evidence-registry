@@ -13,7 +13,6 @@ import (
 // 'upload_file' - the evidence file to be uploaded, 'evidence' - a JSON-encoded object with evidence parameters.
 // The logged-in user (obtained from the request context) is assigned as the author of the new evidence.
 func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Request) {
-
 	userCTX := r.Context().Value(userContextKey)
 
 	user, ok := userCTX.(*service.User)
@@ -65,10 +64,10 @@ func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Req
 	app.respond(w, r, http.StatusCreated, envelope{"Evidence": ev})
 }
 
-// GetEvidenceHandler is an HTTP handler function that fetches and returns details of a specific evidence.
+// GetEvidenceHandler is an HTTP handler function that fetches and returns details of specific evidence.
 // The request must include the evidence's ID as a parameter evidenceID in URL.
 func (app *Application) GetEvidenceHandler(w http.ResponseWriter, r *http.Request) {
-	evID, err := app.evidenceIDParser(r)
+	evID, err := evidenceIDParser(r)
 	if err != nil {
 		app.respondError(w, r, err)
 		return
@@ -111,7 +110,7 @@ func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Requ
 // The request must include the evidence's ID as a parameter evidenceID in URL.
 func (app *Application) DownloadEvidenceHandler(w http.ResponseWriter, r *http.Request) {
 	// Get evidence from the request
-	ev, err := app.evidenceIDParser(r)
+	ev, err := evidenceIDParser(r)
 	if err != nil {
 		app.respondError(w, r, err)
 		return

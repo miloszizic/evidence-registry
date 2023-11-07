@@ -73,7 +73,7 @@ func (app *Application) AddPermissionToRoleHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	permissionID, err := app.permissionIDParser(r)
+	permissionID, err := permissionIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing permission ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -104,7 +104,7 @@ func (app *Application) RemovePermissionFromRoleHandler(w http.ResponseWriter, r
 		return
 	}
 
-	permissionID, err := app.permissionIDParser(r)
+	permissionID, err := permissionIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing permission ID from request", "error", err)
 		app.respondError(w, r, err)

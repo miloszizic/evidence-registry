@@ -62,7 +62,7 @@ func (app *Application) UpdateUserPasswordHandler(w http.ResponseWriter, r *http
 	// maximum number of characters required for a password
 	const passwordMaxLength = 72
 
-	userID, err := app.userIDParser(r)
+	userID, err := userIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing user ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -114,7 +114,7 @@ func (app *Application) UpdateUserPasswordHandler(w http.ResponseWriter, r *http
 
 // AddRoleToUserHandler adds a role to a user in the database
 func (app *Application) AddRoleToUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := app.userIDParser(r)
+	userID, err := userIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing user ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -143,7 +143,7 @@ func (app *Application) AddRoleToUserHandler(w http.ResponseWriter, r *http.Requ
 
 // UpdateUserHandler updates a user in the database
 func (app *Application) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := app.userIDParser(r)
+	userID, err := userIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing user ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -442,7 +442,7 @@ func (app *Application) GetUsersWithRoleHandler(w http.ResponseWriter, r *http.R
 
 // GetUserHandler takes a id and returns a user
 func (app *Application) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.userIDParser(r)
+	id, err := userIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing user ID from request", "error", err)
 		app.respondError(w, r, err)
