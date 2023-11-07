@@ -188,67 +188,6 @@ func initLogger() *zap.SugaredLogger {
 	return sugarLogger
 }
 
-//// CombinedHandler is a custom handler that delegates to multiple other handlers.
-//type CombinedHandler struct {
-//	handlers []slog.Handler
-//}
-//
-//// NewCombinedHandler creates a new CombinedHandler.
-//func NewCombinedHandler(handlers ...slog.Handler) *CombinedHandler {
-//	return &CombinedHandler{
-//		handlers: handlers,
-//	}
-//}
-//
-//// Handle delegates the log record to all the contained handlers.
-//func (ch *CombinedHandler) Handle(ctx context.Context, r slog.Record) error {
-//	for _, handler := range ch.handlers {
-//		err := handler.Handle(ctx, r)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
-//
-//// CustomLogger wraps around slog.Logger to provide combined logging functionality.
-//type CustomLogger struct {
-//	handler *CombinedHandler
-//}
-//
-//// NewCustomLogger creates and initializes a new CustomLogger.
-//func NewCustomLogger() *CustomLogger {
-//	// Initialize a file writer
-//	file, err := os.OpenFile("./test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-//	if err != nil {
-//		panic("Failed to open log file")
-//	}
-//
-//	// Create a TextHandler for file logging
-//	fileHandler := slog.NewTextHandler(file, nil)
-//
-//	// Create a TextHandler for console logging
-//	consoleHandler := slog.NewTextHandler(os.Stdout, nil)
-//
-//	// Create a combined handler
-//	combinedHandler := NewCombinedHandler(fileHandler, consoleHandler)
-//
-//	return &CustomLogger{
-//		handler: combinedHandler,
-//	}
-//}
-//
-//// Info logs an informational message using the combined handler.
-//func (cl *CustomLogger) Info(ctx context.Context, msg string, args ...interface{}) {
-//	record := slog.Record{ // Construct the record based on actual structure in slog
-//		// Fill the record fields based on the provided msg and args
-//	}
-//	err := cl.handler.Handle(ctx, record)
-//	if err != nil {
-//		panic("Failed to handle log record")
-//	}
-//}
-
 func addUser(app *Application) error {
 	pass, err := vault.Hash("password")
 	if err != nil {

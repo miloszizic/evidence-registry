@@ -13,14 +13,7 @@ import (
 // 'upload_file' - the evidence file to be uploaded, 'evidence' - a JSON-encoded object with evidence parameters.
 // The logged-in user (obtained from the request context) is assigned as the author of the new evidence.
 func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user from context payload set by UserParserMiddleware
-	//user, ok := r.Context().Value(userContextKey).(db.AppUser)
-	//if !ok {
-	//	app.logger.Errorw("no user in context")
-	//	app.respondError(w, r, service.ErrMissingUser)
-	//
-	//	return
-	//}
+
 	userCTX := r.Context().Value(userContextKey)
 
 	user, ok := userCTX.(*service.User)
@@ -31,7 +24,7 @@ func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	evParams, err := app.evidenceParamsParser(r)
+	evParams, err := evidenceParamsParser(r)
 	if err != nil {
 		fmt.Printf("Handler error: %v\n", err)
 		app.respondError(w, r, err)

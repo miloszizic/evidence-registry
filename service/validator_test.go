@@ -6,6 +6,8 @@ import (
 )
 
 func TestHasErrors(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		errors      []string

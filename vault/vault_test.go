@@ -210,10 +210,8 @@ func TestGetNonexistentEvidenceInOBS(t *testing.T) {
 	_, err = store.ObjectStore.GetEvidence(context.Background(), testCase.Name, "nonexistentEvidence")
 	if err == nil {
 		t.Errorf("expected error when getting nonexistent evidence, got nil")
-	} else {
-		if !errors.Is(err, vault.ErrNotFound) {
-			t.Errorf("expected ErrNotFound when getting nonexistent evidence, got %v", err)
-		}
+	} else if !errors.Is(err, vault.ErrNotFound) {
+		t.Errorf("expected ErrNotFound when getting nonexistent evidence, got %v", err)
 	}
 }
 

@@ -117,7 +117,7 @@ func IsURL(value string) bool {
 }
 
 // idParser is a helper function that parses the specified ID parameter from the URL.
-func (app *Application) idParser(r *http.Request, paramName string) (uuid.UUID, error) {
+func idParser(r *http.Request, paramName string) (uuid.UUID, error) {
 	urlID := chi.URLParam(r, paramName)
 
 	id, err := uuid.Parse(urlID)
@@ -132,42 +132,42 @@ func (app *Application) idParser(r *http.Request, paramName string) (uuid.UUID, 
 // It delegates the parsing to a generic 'idParser' method, passing 'caseID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) caseIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "caseID")
+	return idParser(r, "caseID")
 }
 
 // caseTypeIDParser is a helper function that extracts the 'caseTypeID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'caseTypeID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) caseTypeIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "caseTypeID")
+	return idParser(r, "caseTypeID")
 }
 
 // roleIDParser is a helper function that extracts the 'roleID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'roleID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) roleIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "roleID")
+	return idParser(r, "roleID")
 }
 
 // permissionIDParser is a helper function that extracts the 'permissionID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'permissionID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) permissionIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "permissionID")
+	return idParser(r, "permissionID")
 }
 
 // evidenceIDParser is a helper function that extracts the 'evidenceID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'evidenceID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) evidenceIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "evidenceID")
+	return idParser(r, "evidenceID")
 }
 
 // userIDParser is a helper function that extracts the 'userID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'userID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
 func (app *Application) userIDParser(r *http.Request) (uuid.UUID, error) {
-	return app.idParser(r, "userID")
+	return idParser(r, "userID")
 }
 
 // HealthCheck is an HTTP handler that checks the status of various components of the application and responds with a health status report.
@@ -327,9 +327,9 @@ type evidenceParams struct {
 }
 
 // evidenceParamsParser is a helper function that extracts evidence parameters from the multipart form data in a HTTP request.
-// It expects the form to include a 'evidence' field containing a JSON-encoded evidenceParams object.
+// It expects the form to include an 'evidence' field containing a JSON-encoded evidenceParams object.
 // If the parsing is successful, it returns the parsed parameters. If not, it returns an error.
-func (app *Application) evidenceParamsParser(r *http.Request) (evidenceParams, error) {
+func evidenceParamsParser(r *http.Request) (evidenceParams, error) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		return evidenceParams{}, fmt.Errorf("error parsing multipart form: %w", err)
 	}
@@ -344,8 +344,6 @@ func (app *Application) evidenceParamsParser(r *http.Request) (evidenceParams, e
 	if err := json.Unmarshal([]byte(evidenceJSON), &request); err != nil {
 		return evidenceParams{}, fmt.Errorf("error unmarshalling evidence data: %w", err)
 	}
-	fmt.Printf("evidenceJSON: %s\n", evidenceJSON)
-	fmt.Printf("request: %+v\n", request)
 
 	return request, nil
 }
