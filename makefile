@@ -17,17 +17,37 @@ docker-compose-testing:
 	docker-compose -f infra/docker-compose-minio.yaml -p fs up -d
 	docker-compose -f infra/docker-compose-postgres.yaml -p db up -d
 
-docker.compose.teardown.mac:
+docker-compose-teardown:
 	docker-compose -f infra/docker-compose-minio.yaml -p fs down -v --remove-orphans
 	docker-compose -f infra/docker-compose-postgres.yaml -p db down -v --remove-orphans
 
-documented-tests:
-	gotestdox ./internal/...
-	gotestdox ./cmd/...
-tests-summary:
-	go test ./internal/... -cover -json | tparse -all
-	go test ./cmd/... -cover -json | tparse -all
+# ==============================================================================
+documented-tests-integration:
+	gotestdox ./api/... --tags=integration
+	gotestdox ./db/... --tags=integration
+	gotestdox ./vault/... --tags=integration
+	gotestdox ./service/... --tags=integration
 
+# ==============================================================================
+documented-tests:
+	gotestdox ./api/...
+	gotestdox ./db/...
+	gotestdox ./vault/...
+	gotestdox ./service/...
+
+# ==============================================================================
+tests-summary:
+	go test ./api -cover -json | tparse -all
+	go test ./db -cover -json | tparse -all
+	go test ./vault -cover -json | tparse -all
+	go test ./service -cover -json | tparse -all
+
+# ==============================================================================
+# Run the app locally with race conditions
+run-race:
+	go run -race main.go
+
+# ======================================================================
 # ==============================================================================
 # Run the app locally
 run:
@@ -60,7 +80,6 @@ kind-create:
 tidy:
 	go mod tidy
 
-
 kind-up:
 	docker start $(KIND_CLUSTER)-control-plane
 
@@ -74,3 +93,16 @@ kind-status:
 
 kind-status-service:
 	kubectl get pods -o wide --watch
+# ========================================================================
+# Running sqlc to generate code
+generate-sqlc:
+	cd db/query && sqlc generate
+
+# ========================================================================
+# Running migrations for local postgres
+migrate-up:
+	migrate -path db/migration -database 'postgres://postgres:postgres@localhost:5432/DER?sslmode=disable' up
+migrate-down:
+	migrate -path db/migration -database 'postgres://postgres:postgres@localhost:5432/DER?sslmode=disable' down
+
+
