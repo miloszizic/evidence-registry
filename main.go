@@ -10,6 +10,7 @@ import (
 	"github.com/miloszizic/der/api"
 )
 
+// the main is the entry point for the application.
 func main() {
 	if err := api.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

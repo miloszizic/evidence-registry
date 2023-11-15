@@ -98,6 +98,7 @@ func (app *Application) ListCasesHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		app.logger.Errorw("Error listing cases", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 	// respond with cases
@@ -121,6 +122,7 @@ func (app *Application) CreateCaseTypeHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		app.logger.Errorw("Error creating case type", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 
@@ -135,6 +137,7 @@ func (app *Application) GetCaseTypeHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.logger.Errorw("Error parsing case type ID from request", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 
@@ -156,6 +159,7 @@ func (app *Application) ListCaseTypesHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		app.logger.Errorw("Error getting case types", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 	// respond with case types
@@ -170,6 +174,7 @@ func (app *Application) UpdateCaseTypeHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		app.logger.Errorw("Error parsing case type ID from request", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 	// parse params from request
@@ -177,6 +182,7 @@ func (app *Application) UpdateCaseTypeHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		app.logger.Errorw("Error parsing params from request", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 	// set case type ID
@@ -186,6 +192,7 @@ func (app *Application) UpdateCaseTypeHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		app.logger.Errorw("Error updating case type", "error", err)
 		app.respondError(w, r, err)
+
 		return
 	}
 

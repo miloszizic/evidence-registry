@@ -1,6 +1,6 @@
 # Build the Go Binary
 
-FROM golang:1.18 as evidence
+FROM golang:1.21 as evidence
 ENV CGO_ENABLED=0
 ARG BUILD_REF
 
