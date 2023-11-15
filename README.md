@@ -1,9 +1,12 @@
 # Digital Evidence Registry
 
+
+
 ## Overview
 
 The Digital Evidence Registry is a comprehensive solution designed to store and manage evidence for courts across the country. With the increasing reliance on digital evidence in modern litigation, there's a growing need for a unified system to maintain the integrity, authenticity, and accessibility of such evidence.
 
+![SLSA Level 3](https://slsa.dev/images/SLSA-Badge-full-level3.svg)
 
 
 ## Why Use the Digital Evidence Registry?
