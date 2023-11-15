@@ -131,21 +131,21 @@ func idParser(r *http.Request, paramName string) (uuid.UUID, error) {
 // caseIDParser is a helper function that extracts the 'caseID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'caseID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) caseIDParser(r *http.Request) (uuid.UUID, error) {
+func caseIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "caseID")
 }
 
 // caseTypeIDParser is a helper function that extracts the 'caseTypeID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'caseTypeID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) caseTypeIDParser(r *http.Request) (uuid.UUID, error) {
+func caseTypeIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "caseTypeID")
 }
 
 // roleIDParser is a helper function that extracts the 'roleID' parameter from the request URL.
 // It delegates the parsing to a generic 'idParser' method, passing 'roleID' as the key.
 // It returns the parsed ID as an uuid.UUID or an error if the parsing fails.
-func (app *Application) roleIDParser(r *http.Request) (uuid.UUID, error) {
+func roleIDParser(r *http.Request) (uuid.UUID, error) {
 	return idParser(r, "roleID")
 }
 

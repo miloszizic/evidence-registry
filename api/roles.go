@@ -29,7 +29,7 @@ func (app *Application) CreateRoleHandler(w http.ResponseWriter, r *http.Request
 
 // DeleteRoleHandler is an HTTP handler that deletes a role from the system.
 func (app *Application) DeleteRoleHandler(w http.ResponseWriter, r *http.Request) {
-	roleID, err := app.roleIDParser(r)
+	roleID, err := roleIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing role ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -65,7 +65,7 @@ func (app *Application) DeleteRoleHandler(w http.ResponseWriter, r *http.Request
 
 // AddPermissionToRoleHandler is an HTTP handler that adds a permission to a role in the system.
 func (app *Application) AddPermissionToRoleHandler(w http.ResponseWriter, r *http.Request) {
-	roleID, err := app.roleIDParser(r)
+	roleID, err := roleIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing role ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -96,7 +96,7 @@ func (app *Application) AddPermissionToRoleHandler(w http.ResponseWriter, r *htt
 
 // RemovePermissionFromRoleHandler is an HTTP handler that removes a permission from a role in the system.
 func (app *Application) RemovePermissionFromRoleHandler(w http.ResponseWriter, r *http.Request) {
-	roleID, err := app.roleIDParser(r)
+	roleID, err := roleIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing role ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -176,7 +176,7 @@ func (app *Application) GetRoleHandler(w http.ResponseWriter, r *http.Request) {
 // GetRolePermissionsHandler is an HTTP handler that returns a list of permissions for a specific role.
 // The request must include the role's ID as a parameter roleID in URL.
 func (app *Application) GetRolePermissionsHandler(w http.ResponseWriter, r *http.Request) {
-	roleID, err := app.roleIDParser(r)
+	roleID, err := roleIDParser(r)
 	if err != nil {
 		app.respondError(w, r, err)
 		return

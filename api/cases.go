@@ -46,7 +46,7 @@ func (app *Application) CreateCaseHandler(w http.ResponseWriter, r *http.Request
 // The request must include the case's ID as a parameter. If the case is found,
 // it responds with a '200 OK' status and the case's details. Otherwise, an error response is returned.
 func (app *Application) GetCaseHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.caseIDParser(r)
+	id, err := caseIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing case ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -70,7 +70,7 @@ func (app *Application) GetCaseHandler(w http.ResponseWriter, r *http.Request) {
 // If the deletion is successful, it responds with a '200 OK' status and a success message.
 // In case of an error, it responds with the corresponding error message.
 func (app *Application) DeleteCaseHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.caseIDParser(r)
+	id, err := caseIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing case ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -133,7 +133,7 @@ func (app *Application) CreateCaseTypeHandler(w http.ResponseWriter, r *http.Req
 // The request must include the case type's ID as a parameter. If the case type is found,
 // it responds with a '200 OK' status and the case type's details. Otherwise, an error response is returned.
 func (app *Application) GetCaseTypeHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.caseTypeIDParser(r)
+	id, err := caseTypeIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing case type ID from request", "error", err)
 		app.respondError(w, r, err)
@@ -170,7 +170,7 @@ func (app *Application) ListCaseTypesHandler(w http.ResponseWriter, r *http.Requ
 // The request must include the case type's ID as a parameter and case type parameters in JSON format in its body.
 func (app *Application) UpdateCaseTypeHandler(w http.ResponseWriter, r *http.Request) {
 	// parse case type ID from request
-	id, err := app.caseTypeIDParser(r)
+	id, err := caseTypeIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing case type ID from request", "error", err)
 		app.respondError(w, r, err)

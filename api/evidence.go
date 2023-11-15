@@ -39,7 +39,7 @@ func (app *Application) CreateEvidenceHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	// parse CaseID from URL
-	caseID, err := app.caseIDParser(r)
+	caseID, err := caseIDParser(r)
 	if err != nil {
 		app.respondError(w, r, err)
 		fmt.Printf("Handler error: %v\n", err)
@@ -85,7 +85,7 @@ func (app *Application) GetEvidenceHandler(w http.ResponseWriter, r *http.Reques
 // ListEvidencesHandler is an HTTP handler function that fetches and returns a list of evidences for a specific case.
 // The request must include the case's ID as a parameter caseID in URL.
 func (app *Application) ListEvidencesHandler(w http.ResponseWriter, r *http.Request) {
-	csID, err := app.caseIDParser(r)
+	csID, err := caseIDParser(r)
 	if err != nil {
 		app.respondError(w, r, err)
 		return

@@ -122,7 +122,7 @@ func (app *Application) AddRoleToUserHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	roleID, err := app.roleIDParser(r)
+	roleID, err := roleIDParser(r)
 	if err != nil {
 		app.logger.Errorw("Error parsing role ID from request", "error", err)
 		app.respondError(w, r, err)
